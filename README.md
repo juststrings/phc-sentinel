@@ -36,7 +36,7 @@ python -m sentinel all                        # facilities -> simulate -> pipeli
 python -m sentinel load-db
 uvicorn sentinel.api.main:app --port 8000
 cd web && npm install && API_URL=http://localhost:8000 npm run dev
-pytest                                        # 43 tests (5 need the PostGIS db and skip without it)
+pytest                                        # 46 tests (5 need the PostGIS db and skip without it)
 cd web && npm test                            # queue-token tests
 ```
 
