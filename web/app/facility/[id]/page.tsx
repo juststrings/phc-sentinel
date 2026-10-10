@@ -2,6 +2,7 @@ import Link from "next/link";
 import Chip from "@/components/Chip";
 import { ConfidenceReasons, DemandCard, Judgement, MalariaCard, Strips, VaccineCard } from "@/components/FacilityParts";
 import Icon from "@/components/Icon";
+import { whyText } from "@/lib/queues";
 import { ApiError, DOMAIN_LABEL, api, monthLabel } from "@/lib/api";
 import { CONF_LABEL, CONF_STYLE, RISK_LABEL, RISK_STYLE, type Confidence, type Risk } from "@/lib/tokens";
 
@@ -74,7 +75,7 @@ export default async function FacilityDetail({ params, searchParams }: {
           </div>
           <section className="card p-4">
             <div className="th mb-1">Summary</div>
-            <p className="text-[15px] leading-6 text-ink">{s.evidence_summary}</p>
+            <p className="text-[15px] leading-6 text-ink">{whyText(s)}</p>
             <p className="mt-2 text-[12px] text-ink-3">Ranked #{s.rank_lga} in {f.lga} and #{s.rank_state} in the state within its queue.</p>
           </section>
         </div>

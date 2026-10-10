@@ -13,6 +13,11 @@ export function tabRows(d: any, tag: string, source: string): any[] {
   return (d[source] as any[]).filter((r) => r.tag === tag).sort((a, b) => a.rank_lga - b.rank_lga);
 }
 
+/** The "Why" text: the engine's evidence summary, plus the corroborating domain for a High pressure signal. */
+export function whyText(r: { evidence_summary: string; corroborated_by?: string | null }): string {
+  return r.corroborated_by ? `${r.evidence_summary}; corroborated by ${r.corroborated_by}` : r.evidence_summary;
+}
+
 export function isOverdue(r: any): boolean {
   return !r.report_received || (r.overdue_days ?? 0) > 0;
 }
@@ -30,7 +35,7 @@ export function toCsv(rows: any[]): string {
   const head = ["Rank", "Facility", "Ward", "Queue", "Risk", "Confidence", "Area", "Reason", "Next action", "Last report", "Overdue"];
   const lines = rows.map((r) => [
     r.rank_lga, r.name, r.ward, r.tag, r.operational_risk, r.data_confidence, DOMAIN_LABEL[r.top_domain] ?? r.top_domain,
-    r.evidence_summary, r.next_action, lastReport(r), isOverdue(r) ? "yes" : "no",
+    whyText(r), r.next_action, lastReport(r), isOverdue(r) ? "yes" : "no",
   ]);
   return [head, ...lines].map((l) => l.map(csvCell).join(",")).join("\r\n");
 }

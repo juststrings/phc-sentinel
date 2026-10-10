@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Chip from "./Chip";
 import Icon from "./Icon";
 import { DOMAIN_LABEL } from "@/lib/api";
-import { isOverdue, lastReport, toCsv } from "@/lib/queues";
+import { isOverdue, lastReport, toCsv, whyText } from "@/lib/queues";
 
 const PAGE = 25;
 const sel = "rounded border border-line bg-card px-2 py-1.5 text-[13px] text-ink";
@@ -92,7 +92,7 @@ export default function WorkList({ rows, month, filename }: { rows: any[]; month
                     <div className="flex flex-wrap gap-1"><Chip kind="risk" value={r.operational_risk} /><Chip kind="confidence" value={r.data_confidence} /></div>
                   </td>
                   <td className="px-2 py-3 text-ink-2">{DOMAIN_LABEL[r.top_domain] ?? r.top_domain}</td>
-                  <td className="max-w-[320px] px-2 py-3 text-ink-2">{r.evidence_summary}</td>
+                  <td className="max-w-[320px] px-2 py-3 text-ink-2">{whyText(r)}</td>
                   <td className="max-w-[260px] px-2 py-3 text-ink">{r.next_action}</td>
                   <td className="whitespace-nowrap px-2 py-3 tabular-nums text-ink-2">
                     {lastReport(r)}

@@ -74,3 +74,16 @@ def test_trend_has_split_and_warmup_flag(api):
     t = api.state_summary(None)["trend"]
     assert {"act_now", "verify_then_act", "warmup"} <= t[0].keys()
     assert t[0]["warmup"] is True and t[-1]["warmup"] is False
+
+
+def test_corroborated_by_names_the_worst_credible_other_domain():
+    from sentinel.api.explain import corroborated_by
+    ex = {"domains": [
+        {"domain": "service_pressure", "label": "Service pressure", "severity": "HIGH", "credible": True, "evidence": []},
+        {"domain": "malaria_commodity", "label": "Malaria commodities", "severity": "WATCH", "credible": True, "evidence": [
+            {"text": "ACT adult: 40 in stock, so 2.5 months", "mos": 2.5}, {"text": "ACT child: 30 in stock", "mos": 1.84}]},
+        {"domain": "vaccine_cold_chain", "label": "Vaccine & cold chain", "severity": "CRITICAL", "credible": False, "evidence": []},
+    ]}
+    assert corroborated_by(ex, "service_pressure", "HIGH") == "ACT child at 1.8 months (Watch)"
+    assert corroborated_by(ex, "service_pressure", "WATCH") is None        # only High or worse
+    assert corroborated_by(ex, "malaria_commodity", "HIGH") is None        # only pressure-driven facilities

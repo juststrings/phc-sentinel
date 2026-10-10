@@ -11,6 +11,7 @@ from sqlalchemy import text
 from ..config import mapping, settings
 from ..db import engine
 from ..engines.dqr import PRODUCT_LABEL, RULES
+from .explain import corroborated_by
 from .thresholds import thresholds
 
 app = FastAPI(title="PHC Sentinel API", version="0.1.0",
@@ -247,7 +248,7 @@ def lga_queue(lga_id: str, month: str | None = MONTH):
                        q.data_confidence, q.top_domain, q.evidence_summary, q.next_action,
                        q.consecutive_missing, q.nhlmis_age_days, fm.late_days, fm.report_received,
                        fm.days_since_deadline_missed, fm.reliable_history, fm.silent_flag, fm.submission_date,
-                       fm.overdue_days, lr.last_report_month
+                       fm.overdue_days, lr.last_report_month, q.explanation
                 FROM mart_queue q JOIN dim_facility f USING (facility_id)
                 LEFT JOIN LATERAL (SELECT max(h.analysis_month) AS last_report_month FROM mart_facility_month h
                                    WHERE h.facility_id = q.facility_id AND h.analysis_month <= q.analysis_month
@@ -256,6 +257,7 @@ def lga_queue(lga_id: str, month: str | None = MONTH):
                 WHERE q.analysis_month = :m AND q.lga_id = :l ORDER BY q.queue, q.rank_lga""", m=m, l=lga_id)
     by = {"RESOURCE_ACTION": [], "DATA_VERIFICATION": [], "MONITOR": []}
     for r in rows:
+        r["corroborated_by"] = corroborated_by(r.pop("explanation"), r["top_domain"], r["operational_risk"])
         by[r["queue"]].append(r)
     return {"month": m, "lga": summary, "action": by["RESOURCE_ACTION"], "verification": by["DATA_VERIFICATION"],
             "monitor": by["MONITOR"]}
@@ -275,6 +277,7 @@ def facility(facility_id: str, month: str | None = MONTH):
     if status is None:
         raise HTTPException(404, f"no analysis for facility {facility_id} in {m}")
     explanation = status.pop("explanation")
+    status["corroborated_by"] = corroborated_by(explanation, status["top_domain"], status["operational_risk"])
     # Trends up to the analysis month: service volumes vs baseline, commodity position, reporting history.
     services = q("""SELECT analysis_month, indicator, value, expected, z, seasonal FROM mart_service_baseline
                     WHERE facility_id = :f AND analysis_month <= :m AND indicator IN ('opd', 'confirmed_malaria')
