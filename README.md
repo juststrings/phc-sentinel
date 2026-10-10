@@ -36,7 +36,8 @@ python -m sentinel all                        # facilities -> simulate -> pipeli
 python -m sentinel load-db
 uvicorn sentinel.api.main:app --port 8000
 cd web && npm install && API_URL=http://localhost:8000 npm run dev
-pytest                                        # 36 tests
+pytest                                        # 43 tests (5 need the PostGIS db and skip without it)
+cd web && npm test                            # queue-token tests
 ```
 
 ## How it works
@@ -64,8 +65,28 @@ NHLMIS exports ────┘                                  │
 | `sentinel/engines/baseline.py`, `risk.py` | Phase 5: seasonal robust baselines; commodity, vaccine and pressure domains |
 | `sentinel/engines/decision.py` | Phase 6: confidence, worst-credible-domain risk, queues, ranking, next actions, LGA roll-up |
 | `sentinel/db.py`, `sentinel/api/` | PostGIS load and the FastAPI read API (§8.2 contract) |
-| `web/` | Next.js: state overview, LGA queues, facility explanation, method & data |
+| `web/` | Next.js + Tailwind: state overview, LGA queues, facilities directory, facility explanation, method. Colours are tokens in `web/app/globals.css` and `web/lib/tokens.ts` |
 | `docs/` | Data contract, assumptions register, design decisions (departures from the proposal) |
+
+## What is real and what is simulated
+
+The app shows a banner on every page. Behind it:
+
+| Data | Status |
+|---|---|
+| Facility names, wards, LGA, type, ownership, coordinates, NHFR code | **Real** (GRID3 Nigeria v3.0, CC BY 4.0) |
+| LGA boundaries | **Real** (GRID3) |
+| DHIS2 org unit UIDs and LMIS facility codes | **Synthetic** linkage keys |
+| Monthly reports: OPD, malaria cases, ANC, deliveries, Penta doses, RI sessions, vaccine stockout, refrigerator status | **Simulated** (DHIS2 structure) |
+| Commodity reports: stock, consumption, stockout days, AMC (ACT adult, ACT child, malaria RDT) | **Simulated** (NHLMIS structure) |
+| Report dates, lateness, silence and missing reports | **Simulated** |
+| Months of stock, risk, confidence, queues, ranks, next actions, LGA roll-ups, trends | **Derived** from the simulated data, so also not real |
+| Thresholds in `config/settings.yaml` | Real policy or convention where tagged POLICY, WHO-DQR or STAT; `commodity.eop_months` (1 month) still needs confirming against national policy |
+
+Nothing in the UI describes an actual Bauchi facility's stock or reporting. The Stitch design files in
+`stitch_phc_sentinel_early_warning/` contain placeholder names, counts, contacts and dates; none were copied into the app.
+In-charge names and phones, fridge models, an officer on duty, a data-sync panel, epi-weeks and a WHO state target are not shown
+because no data source backs them.
 
 ## Guarantees checked on every run
 

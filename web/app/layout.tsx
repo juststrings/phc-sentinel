@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import "./legacy.css";
 import "./globals.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { api } from "@/lib/api";
