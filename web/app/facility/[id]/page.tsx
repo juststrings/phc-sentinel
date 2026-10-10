@@ -61,8 +61,8 @@ export default async function FacilityDetail({ params, searchParams }: {
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-12">
-        <div className="space-y-4 lg:col-span-8">
+      <div className="grid items-stretch gap-4 lg:grid-cols-12">
+        <div className="flex flex-col gap-4 lg:col-span-8">
           <div className="grid gap-3 sm:grid-cols-2">
             <Judgement label="Operational risk" bg={risk?.bg} fg={risk?.fg}
               sub={`${DOMAIN_LABEL[s.top_domain] ?? s.top_domain}${s.pressure_capped ? " · service demand alone capped at Watch" : ""}`}>
@@ -73,28 +73,16 @@ export default async function FacilityDetail({ params, searchParams }: {
               {CONF_LABEL[s.data_confidence as Confidence] ?? s.data_confidence}
             </Judgement>
           </div>
-          <section className="card p-4">
+          <section className="card flex-1 p-4">
             <div className="th mb-1">Summary</div>
             <p className="text-[15px] leading-6 text-ink">{whyText(s)}</p>
             <p className="mt-2 text-[12px] text-ink-3">Ranked #{s.rank_lga} in {f.lga} and #{s.rank_state} in the state within its queue.</p>
           </section>
         </div>
-        <div className="space-y-4 lg:col-span-4">
-          <section className="card p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--q-verify)" }}>
-            <div className="th mb-1">Next action</div>
-            <p className="text-[15px] font-medium leading-6 text-ink">{s.next_action}</p>
-          </section>
-          <section className="card p-4">
-            <div className="th mb-2">Facility record</div>
-            <dl className="space-y-1 text-[13px]">
-              {[["Type", f.facility_type], ["Ownership", f.ownership_type], ["Functional status", f.functional_status], ["NHFR code", f.nhfr_code],
-                ["Latitude", f.latitude?.toFixed(4)], ["Longitude", f.longitude?.toFixed(4)]].filter(([, v]) => v).map(([k, v]) => (
-                <div key={k as string} className="flex justify-between gap-3"><dt className="text-ink-3">{k}</dt><dd className="text-right text-ink">{v}</dd></div>
-              ))}
-            </dl>
-            <p className="mt-2 text-[11px] text-ink-3">Source: GRID3 facility registry.</p>
-          </section>
-        </div>
+        <section className="card p-4 lg:col-span-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--q-verify)" }}>
+          <div className="th mb-1">Next action</div>
+          <p className="text-[15px] font-medium leading-6 text-ink">{s.next_action}</p>
+        </section>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -103,10 +91,23 @@ export default async function FacilityDetail({ params, searchParams }: {
         <DemandCard ex={ex} services={d.trends.services} capped={!!s.pressure_capped} month={month} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ConfidenceReasons conf={s.data_confidence} reasons={ex.confidence_reasons ?? []} checks={checks} />
-        <Strips rows={d.trends.reporting} />
+      <div className="grid items-stretch gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <ConfidenceReasons conf={s.data_confidence} reasons={ex.confidence_reasons ?? []} checks={checks} />
+        </div>
+        <section className="card p-4 lg:col-span-4">
+          <div className="th mb-2">Facility record</div>
+          <dl className="space-y-1 text-[13px]">
+            {[["Type", f.facility_type], ["Ownership", f.ownership_type], ["Functional status", f.functional_status], ["NHFR code", f.nhfr_code],
+              ["Latitude", f.latitude?.toFixed(4)], ["Longitude", f.longitude?.toFixed(4)]].filter(([, v]) => v).map(([k, v]) => (
+              <div key={k as string} className="flex justify-between gap-3"><dt className="text-ink-3">{k}</dt><dd className="text-right text-ink">{v}</dd></div>
+            ))}
+          </dl>
+          <p className="mt-2 text-[11px] text-ink-3">Source: GRID3 facility registry.</p>
+        </section>
       </div>
+
+      <Strips rows={d.trends.reporting} />
     </div>
   );
 }

@@ -124,7 +124,7 @@ const RULE_SEV: Record<string, string> = { severe: "Severe", major: "Major", min
 export function ConfidenceReasons({ conf, reasons, checks }: { conf: string; reasons: string[]; checks: any[] }) {
   const title = conf === "HIGH" ? "Data confidence is high" : `Why confidence is ${conf.toLowerCase()}`;
   return (
-    <section className={card} aria-label="Why confidence">
+    <section className={`${card} h-full`} aria-label="Why confidence">
       <h3 className="mb-3 text-[14px] font-semibold text-ink">{title}</h3>
       {checks.length === 0 && reasons.length === 0 ? (
         <p className="text-[13px] text-ink-3">All expected reports are current, complete and coherent.</p>
