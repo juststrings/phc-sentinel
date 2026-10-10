@@ -36,7 +36,8 @@ This branch merges it (main itself is untouched) and carries the restyle across:
 - **State picker on full pages:** Overview, LGA queues and the state Facilities directory have a State picker that keeps you on the same view when
   you switch state. It is hidden inside the States modal, where the state is fixed. The sidebar shows the selected state's pages as an indented
   sub-menu of States.
-- **LGA ranking card:** the state overview shows the top 10 LGAs; "Show all N LGAs" opens the full ranked table in a modal (legend, sticky header, Esc to close).
+- **LGA ranking card:** on large screens it is exactly as tall as the map card beside it: it shows as many LGAs as fit (measured, at least 5) and the
+  rows share any spare height, so there is no blank space. "Show all N LGAs" opens the full ranked table in a modal (legend, sticky header, Esc to close).
 - **Facilities for all states (`/facilities`):** the directory with a State filter (API: `GET /facilities?state=`). A state's own directory
   stays at `/state/{code}/facilities`; both share one component.
 - **National page is quieter:** 5 headline cards (was 7), no state cards, and the zones table sits directly under the map.
