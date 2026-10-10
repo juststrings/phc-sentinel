@@ -7,6 +7,7 @@
   color-scheme: light;
   --canvas: #f8fafc; --card: #ffffff; --muted-bg: #f1f5f9; --line: #e2e8f0;
   --s1: #2563eb; --s2: #0891b2; --s3: #7c3aed;
+  --banner-bg: #fffbeb; --banner-fg: #92400e; --banner-bd: #fde68a;
   --ink: #0f172a; --ink-2: #334155; --ink-3: #64748b; --brand: #0f172a;
 
   /* Queue tokens. Do-not-assume-safe is indigo + hatch and must never read as monitor or verify. */
@@ -39,7 +40,25 @@
     --r-watch-bg: #422006; --r-watch-fg: #fef08a; --r-normal-bg: #1e293b; --r-normal-fg: #cbd5e1;
     --c-high-bg: #052e16; --c-high-fg: #bbf7d0; --c-mod-bg: #082f49; --c-mod-fg: #bae6fd;
     --c-low-bg: #1e293b; --c-low-fg: #cbd5e1;
+    --banner-bg: #2a2010; --banner-fg: #fcd34d; --banner-bd: #b45309;
   }
+}
+
+/* Explicit choice from the theme toggle wins over the system setting. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0b1220; --card: #111a2e; --muted-bg: #1a2540; --line: #24304d;
+  --ink: #f1f5f9; --ink-2: #cbd5e1; --ink-3: #94a3b8; --brand: #f1f5f9;
+  --q-act-fg: #fca5a5; --q-act-bg: #2a1215; --q-act-bd: #b91c1c;
+  --q-verify-fg: #fcd34d; --q-verify-bg: #2a2010; --q-verify-bd: #b45309;
+  --q-dnas-fg: #a5b4fc; --q-dnas-bg: #1a1b3d; --q-dnas-bd: #6366f1;
+  --q-monitor-fg: #5eead4; --q-monitor-bg: #0d2522; --q-monitor-bd: #0f766e;
+  --q-act: #ef4444; --q-verify: #f59e0b; --q-dnas: #818cf8; --q-monitor: #2dd4bf;
+  --r-critical-bg: #450a0a; --r-critical-fg: #fecaca; --r-high-bg: #431407; --r-high-fg: #fed7aa;
+  --r-watch-bg: #422006; --r-watch-fg: #fef08a; --r-normal-bg: #1e293b; --r-normal-fg: #cbd5e1;
+  --c-high-bg: #052e16; --c-high-fg: #bbf7d0; --c-mod-bg: #082f49; --c-mod-fg: #bae6fd;
+  --c-low-bg: #1e293b; --c-low-fg: #cbd5e1;
+  --banner-bg: #2a2010; --banner-fg: #fcd34d; --banner-bd: #b45309;
 }
 
 html, body { margin: 0; padding: 0; }
@@ -58,4 +77,4 @@ a { color: inherit; text-decoration: none; }
 .th { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
 
 /* Simulated-data banner: shown on every page. */
-.banner { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fde68a; font-size: 12.5px; padding: 6px 16px; text-align: center; }
+.banner { background: var(--banner-bg); color: var(--banner-fg); border-bottom: 1px solid var(--banner-bd); font-size: 12.5px; padding: 6px 16px; text-align: center; }

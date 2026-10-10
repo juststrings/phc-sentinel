@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import FacilitySearch from "@/components/FacilitySearch";
 import MonthPicker from "@/components/MonthPicker";
 import Sidebar from "@/components/Sidebar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "PHC Sentinel",
@@ -15,9 +16,11 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [meta, st] = await Promise.all([api<any>("/meta/months"), api<any>("/meta/state")]);
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       {/* IBM Plex Sans loads from a runtime stylesheet link, so builds never depend on the network; the font stack falls back. */}
       <head>
+        {/* Apply a saved theme choice before first paint, so there is no flash. */}
+        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('phc-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}" }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" />
       </head>
@@ -37,6 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <div className="ml-auto flex flex-wrap items-center gap-3">
                 <Suspense fallback={null}><MonthPicker months={meta.months} latest={meta.latest} /></Suspense>
                 <Suspense fallback={null}><FacilitySearch /></Suspense>
+                <ThemeToggle />
               </div>
             </header>
             <main className="p-4 md:p-6">{children}</main>
