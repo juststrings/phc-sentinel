@@ -40,6 +40,8 @@ pytest                                        # 46 tests (5 need the PostGIS db 
 cd web && npm test                            # queue-token tests
 ```
 
+See [CHANGELOG.md](CHANGELOG.md) for the Stitch UI restyle and the API additions that came with it.
+
 ## How it works
 
 ```
