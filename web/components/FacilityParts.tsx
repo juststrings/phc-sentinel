@@ -1,7 +1,7 @@
 import Chip from "./Chip";
 import { CommodityChart, ServiceChart } from "./Charts";
 import { monthLabel } from "@/lib/api";
-import { CONF_STYLE, RISK_STYLE, type Confidence, type Risk } from "@/lib/tokens";
+import { CONF_LABEL, CONF_STYLE, RISK_LABEL, RISK_STYLE, type Confidence, type Risk } from "@/lib/tokens";
 
 const card = "card p-4";
 
@@ -160,14 +160,16 @@ export function Strips({ rows }: { rows: any[] }) {
   return (
     <section className={card} aria-label="Last 12 months">
       <h3 className="mb-3 text-[14px] font-semibold text-ink">Last 12 months</h3>
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div>
           <div className="th mb-1">Operational risk</div>
           {strip((r) => ({ c: RISK_STYLE[r.operational_risk as Risk]?.hex ?? "var(--line)", t: r.operational_risk }))}
+          <Legend items={(["NORMAL", "WATCH", "HIGH", "CRITICAL"] as Risk[]).map((k) => [RISK_LABEL[k], RISK_STYLE[k].hex])} />
         </div>
         <div>
           <div className="th mb-1">Data confidence</div>
           {strip((r) => ({ c: CONF_STYLE[r.data_confidence as Confidence]?.hex ?? "var(--line)", t: r.data_confidence }))}
+          <Legend items={(["HIGH", "MODERATE", "LOW"] as Confidence[]).map((k) => [CONF_LABEL[k], CONF_STYLE[k].hex])} />
         </div>
         <div>
           <div className="th mb-1">Monthly report arrival</div>
@@ -188,18 +190,30 @@ export function Strips({ rows }: { rows: any[] }) {
               );
             })}
           </div>
+          <Legend items={[["On time", "var(--q-monitor)"], ["Late", "var(--q-verify)"], ["Missing at analysis date", "ring"]]} />
         </div>
         <div className="flex justify-between text-[11px] text-ink-3">
           <span>{last[0] && monthLabel(last[0].analysis_month)}</span>
-          <span>{last.length && monthLabel(last[last.length - 1].analysis_month)}</span>
-        </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-2">
-          <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[var(--q-monitor)]" />on time</span>
-          <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[var(--q-verify)]" />late</span>
-          <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full border-2 border-ink-3" />missing at analysis date</span>
-          <span className="ml-auto">Risk and confidence: darker is worse</span>
+          <span>{last.length > 0 && monthLabel(last[last.length - 1].analysis_month)}</span>
         </div>
       </div>
     </section>
+  );
+}
+
+/** Small inline legend for a strip. A colour of "ring" draws the hollow marker used for missing reports. */
+function Legend({ items }: { items: (readonly [string, string])[] }) {
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-2">
+      {items.map(([label, color]) => (
+        <span key={label} className="flex items-center gap-1.5">
+          <i
+            className={`inline-block h-2.5 w-2.5 ${color === "ring" ? "rounded-full border-2 border-ink-3" : "rounded-sm"}`}
+            style={color === "ring" ? undefined : { background: color }}
+          />
+          {label}
+        </span>
+      ))}
+    </div>
   );
 }
