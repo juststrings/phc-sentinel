@@ -11,6 +11,7 @@ from sqlalchemy import text
 from ..config import mapping, settings
 from ..db import engine
 from ..engines.dqr import PRODUCT_LABEL, RULES
+from .thresholds import thresholds
 
 app = FastAPI(title="PHC Sentinel API", version="0.1.0",
               description="Operational risk x data confidence for Bauchi State PHCs. Operational data are SIMULATED.")
@@ -73,6 +74,12 @@ def meta_settings():
 def meta_state():
     return one("""SELECT (SELECT min(state) FROM dim_lga) AS state, (SELECT count(*) FROM dim_lga) AS lgas,
                          (SELECT count(*) FROM dim_facility) AS facilities""")
+
+
+@app.get("/meta/thresholds")
+def meta_thresholds():
+    """Every threshold in config/settings.yaml with its basis tag, for the Method page."""
+    return {"thresholds": thresholds(), "dhis2_dataset": mapping()["dhis2"]["dataset"]["name"]}
 
 
 @app.get("/meta/rules")
