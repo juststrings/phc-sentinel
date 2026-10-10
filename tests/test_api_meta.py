@@ -95,3 +95,14 @@ def test_every_rule_has_a_severity_from_the_engine_source():
     assert set(sev) == set(RULES) and all(sev.values())
     assert sev["COH_OPD_ZERO"] == ["major"] and sev["COH_SESSIONS"] == ["minor"]
     assert sev["COMP_MISSING_FIELDS"] == ["major", "minor"]
+
+
+def test_threshold_notes_are_readable_and_calendar_range_is_hidden():
+    rows = thresholds()
+    keys = {(r["section"], r["key"]) for r in rows}
+    assert ("calendar", "first_period") not in keys and ("calendar", "last_period") not in keys
+    for r in rows:
+        assert "proposal" not in r["note"].lower() and "[" not in r["note"], r
+    by = {(r["section"], r["key"]): r for r in rows}
+    assert "national min-max inventory policy" in by[("commodity", "min_months")]["note"]
+    assert by[("service_pressure", "watch_z")]["note"] == ""      # source not recorded: basis tag only
