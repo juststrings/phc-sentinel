@@ -6,6 +6,7 @@
 :root {
   color-scheme: light;
   --canvas: #f8fafc; --card: #ffffff; --muted-bg: #f1f5f9; --line: #e2e8f0;
+  --s1: #2563eb; --s2: #0891b2; --s3: #7c3aed;
   --ink: #0f172a; --ink-2: #334155; --ink-3: #64748b; --brand: #0f172a;
 
   /* Queue tokens. Do-not-assume-safe is indigo + hatch and must never read as monitor or verify. */

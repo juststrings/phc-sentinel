@@ -1,10 +1,14 @@
 const API = process.env.API_URL || "http://localhost:8000";
 
+export class ApiError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
 export async function api<T = any>(path: string, month?: string): Promise<T> {
   const url = new URL(path, API);
   if (month) url.searchParams.set("month", month);
   const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`API ${res.status} on ${path}: ${await res.text()}`);
+  if (!res.ok) throw new ApiError(res.status, `API ${res.status} on ${path}: ${await res.text()}`);
   return res.json();
 }
 
