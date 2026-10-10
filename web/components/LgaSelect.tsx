@@ -1,7 +1,7 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LgaSelect({ lgas, value }: { lgas: { lga_id: string; lga: string }[]; value: string }) {
+export default function LgaSelect({ lgas, value, code }: { lgas: { lga_id: string; lga: string }[]; value: string; code: string }) {
   const router = useRouter();
   const params = useSearchParams();
   return (
@@ -11,7 +11,7 @@ export default function LgaSelect({ lgas, value }: { lgas: { lga_id: string; lga
       className="rounded border border-line bg-card px-3 py-2 text-[16px] font-semibold text-ink"
       onChange={(e) => {
         const p = new URLSearchParams(params.toString());
-        router.push(`/lga/${e.target.value}${p.get("month") ? `?month=${p.get("month")}` : ""}`);
+        router.push(`/state/${code}/lga/${e.target.value}${p.get("month") ? `?month=${p.get("month")}` : ""}`);
       }}
     >
       {[...lgas].sort((a, b) => a.lga.localeCompare(b.lga)).map((l) => (

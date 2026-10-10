@@ -10,7 +10,7 @@ const PAGE = 25;
 const sel = "rounded border border-line bg-card px-2 py-1.5 text-[13px] text-ink";
 
 /** Ranked work list for one queue. Filters apply to the list; Export CSV downloads exactly the filtered rows. */
-export default function WorkList({ rows, month, filename }: { rows: any[]; month: string; filename: string }) {
+export default function WorkList({ rows, month, filename, code }: { rows: any[]; month: string; filename: string; code: string }) {
   const [area, setArea] = useState("");
   const [conf, setConf] = useState("");
   const [overdue, setOverdue] = useState(false);
@@ -85,7 +85,7 @@ export default function WorkList({ rows, month, filename }: { rows: any[]; month
                 <tr key={r.facility_id} className="border-b border-line align-top last:border-0 hover:bg-muted">
                   <td className="px-4 py-3 text-ink-3 tabular-nums">{(cur - 1) * PAGE + i + 1}</td>
                   <td className="px-2 py-3">
-                    <Link href={`/facility/${r.facility_id}?month=${month}`} className="font-medium hover:underline">{r.name}</Link>
+                    <Link href={`/state/${code}/facility/${r.facility_id}?month=${month}`} className="font-medium hover:underline">{r.name}</Link>
                     <div className="text-[12px] text-ink-3">{r.ward}</div>
                   </td>
                   <td className="px-2 py-3">

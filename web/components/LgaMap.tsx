@@ -17,8 +17,8 @@ function bbox(fc: any): [number, number, number, number] {
   return [x0, y0, x1, y1];
 }
 
-export default function LgaMap({ lgas: rawLgas, facilities, month, focusLga }: {
-  lgas: any; facilities: any; month: string; focusLga?: string;
+export default function LgaMap({ lgas: rawLgas, facilities, month, focusLga, stateCode, unmapped }: {
+  lgas: any; facilities: any; month: string; focusLga?: string; stateCode: string; unmapped?: number;
 }) {
   // Shade by the share of each LGA's PHCs that are Act now.
   const lgas = useMemo(() => ({
@@ -70,6 +70,7 @@ export default function LgaMap({ lgas: rawLgas, facilities, month, focusLga }: {
       },
       bounds,
       fitBoundsOptions: { padding: 24 },
+      preserveDrawingBuffer: true,   // lets the map print and appear in screenshots
       attributionControl: { customAttribution: "Boundaries & facilities: GRID3 (CC BY 4.0)" },
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
@@ -84,12 +85,12 @@ export default function LgaMap({ lgas: rawLgas, facilities, month, focusLga }: {
         const p: any = e.features?.[0]?.properties;
         if (!p) return;
         map.getCanvas().style.cursor = "pointer";
-        popup.setLngLat(e.lngLat).setHTML(`<strong>${p.name}</strong><br/>${p.tag}`).addTo(map);
+        popup.setLngLat(e.lngLat).setHTML(`<strong>${p.name}</strong><br/>${p.tag}${p.coord_status === "near_boundary" ? "<br/><em>Near boundary: within 5 km of its LGA</em>" : ""}`).addTo(map);
       });
       map.on("mouseleave", "fac", () => { popup.remove(); map.getCanvas().style.cursor = ""; });
       map.on("click", "fac", (e) => {
         const p: any = e.features?.[0]?.properties;
-        if (p) router.push(`/facility/${p.facility_id}?month=${month}`);
+        if (p) router.push(`/state/${stateCode}/facility/${p.facility_id}?month=${month}`);
       });
       if (!focusLga) {
         map.on("mousemove", "lga-fill", (e) => {
@@ -104,12 +105,12 @@ export default function LgaMap({ lgas: rawLgas, facilities, month, focusLga }: {
         map.on("click", "lga-fill", (e) => {
           if (map.queryRenderedFeatures(e.point, { layers: ["fac"] }).length) return;
           const p: any = e.features?.[0]?.properties;
-          if (p) router.push(`/lga/${p.lga_id}?month=${month}`);
+          if (p) router.push(`/state/${stateCode}/lga/${p.lga_id}?month=${month}`);
         });
       }
     }
     return () => { ro.disconnect(); map.remove(); };
-  }, [lgas, facilities, month, focusLga, router, theme]);
+  }, [lgas, facilities, month, focusLga, router, theme, stateCode]);
 
   const max = Math.max(0, ...lgas.features.map((f: any) => f.properties.act_share ?? 0));
   return (
@@ -123,6 +124,11 @@ export default function LgaMap({ lgas: rawLgas, facilities, month, focusLga }: {
             <span className="tabular-nums">0%–{Math.round(max * 100)}%</span>
           </span>
         )}
+        {unmapped ? (
+          <span className="text-ink-3" title="Coordinates more than 5 km from the facility's own LGA. These PHCs stay in every queue.">
+            {unmapped} PHC{unmapped > 1 ? "s" : ""} with unverified location not drawn
+          </span>
+        ) : null}
         <span className="flex gap-3">
           {Object.entries(QUEUE_BY_TAG).map(([t, q]) => (
             <span key={t} className="flex items-center gap-1">

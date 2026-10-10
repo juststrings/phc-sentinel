@@ -1,20 +1,18 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./legacy.css";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { api } from "@/lib/api";
-import FacilitySearch from "@/components/FacilitySearch";
-import MonthPicker from "@/components/MonthPicker";
-import Sidebar from "@/components/Sidebar";
-import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
-  title: "PHC Sentinel",
-  description: "See risk before it becomes a shortage: operational risk x data confidence for Bauchi State PHCs.",
+  title: { default: "PHC Sentinel", template: "%s · PHC Sentinel" },
+  description: "See risk before it becomes a shortage: operational risk x data confidence for primary health care in 12 Nigerian states.",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [meta, st] = await Promise.all([api<any>("/meta/months"), api<any>("/meta/state")]);
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
+
+/** The simulated-data banner sits in the root layout, so it is on every page:
+ * landing, national map, state briefs, briefing mode, state portals and facility pages. */
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       {/* IBM Plex Sans loads from a runtime stylesheet link, so builds never depend on the network; the font stack falls back. */}
@@ -25,27 +23,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" />
       </head>
       <body>
-        <div className="banner" role="note">
-          Demonstration: facility list and boundaries are real (GRID3). All operational reporting data are{" "}
-          <strong>simulated</strong> and do not describe actual Bauchi facilities.
+        <div className="banner" role="note" aria-label="Data notice">
+          <span className="chip">All operational data simulated</span>
+          <span className="long">
+            Facility lists and boundaries are real (GRID3 v3.0). Reporting, stock and service figures are{" "}
+            <strong>simulated</strong> and do not describe actual facilities.
+          </span>
+          <span className="short">Facility lists are real (GRID3); all figures are simulated.</span>
         </div>
-        <div className="md:flex">
-          <Suspense fallback={null}><Sidebar state={st.state} /></Suspense>
-          <div className="min-w-0 flex-1">
-            <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line bg-card px-4 py-3 md:px-6">
-              <div className="text-[14px] font-semibold text-ink">
-                {st.state} State
-                <span className="ml-2 text-[12px] font-normal text-ink-3">{st.lgas} LGAs · {st.facilities.toLocaleString()} PHCs</span>
-              </div>
-              <div className="ml-auto flex flex-wrap items-center gap-3">
-                <Suspense fallback={null}><MonthPicker months={meta.months} latest={meta.latest} /></Suspense>
-                <Suspense fallback={null}><FacilitySearch /></Suspense>
-                <ThemeToggle />
-              </div>
-            </header>
-            <main className="p-4 md:p-6">{children}</main>
-          </div>
-        </div>
+        {children}
       </body>
     </html>
   );

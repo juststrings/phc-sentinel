@@ -16,7 +16,12 @@ def test_thresholds_match_settings_and_carry_basis():
     s = settings()
     assert rows, "no thresholds parsed"
     for r in rows:
-        assert r["value"] == s[r["section"]][r["key"]]
+        sec = s[r["section"]]
+        if r["key"] in sec:
+            assert r["value"] == sec[r["key"]]
+        else:                                    # nested one level, named "<parent>_<key>" (national.status)
+            parent, key = next((p, r["key"][len(p) + 1:]) for p in sec if r["key"].startswith(p + "_") and isinstance(sec[p], dict))
+            assert r["value"] == sec[parent][key]
     by = {(r["section"], r["key"]): r for r in rows}
     assert by[("commodity", "min_months")]["basis"] == "POLICY"
     assert by[("service_pressure", "watch_z")]["basis"] == "STAT"
@@ -39,9 +44,9 @@ def api():
 
 
 def _dir(api, **kw):
-    args = dict(month=None, q_=None, lga_id=None, queue=None, tag=None, area=None, risk=None, confidence=None,
-                stale=False, coords=False, sort="name", dir="asc", page=1, page_size=25)
-    return api.facilities(**{**args, **kw})
+    args = dict(state="bauchi", month=None, text_q=None, lga_id=None, queue=None, tag=None, area=None, risk=None,
+                confidence=None, stale=False, unverified=False, sort="name", dir="asc", page=1, page_size=25)
+    return api.facility_directory(**{**args, **kw})
 
 
 def test_rules_endpoint_lists_all_fourteen(api):
@@ -50,8 +55,8 @@ def test_rules_endpoint_lists_all_fourteen(api):
 
 
 def test_coords_reports_both_counts(api):
-    d = api.meta_coords()
-    assert {"outside_lga", "outside_state", "facilities"} <= d.keys()
+    d = api.state_coords("bauchi")
+    assert {"unverified", "outside_state", "near_boundary", "facilities"} <= d.keys()
 
 
 def test_facilities_paging_filter_and_sort_whitelist(api):
@@ -62,16 +67,18 @@ def test_facilities_paging_filter_and_sort_whitelist(api):
     with pytest.raises(HTTPException) as e:
         _dir(api, sort="name; DROP TABLE x")
     assert e.value.status_code == 422
+    everywhere = _dir(api, state=None, page_size=1)       # state=None is the top-bar search across all states
+    assert everywhere["total"] > d["total"]
 
 
 def test_unknown_facility_is_404(api):
     with pytest.raises(HTTPException) as e:
-        api.facility("NOPE", None)
+        api.facility("bauchi", "NOPE", None)
     assert e.value.status_code == 404
 
 
 def test_trend_has_split_and_warmup_flag(api):
-    t = api.state_summary(None)["trend"]
+    t = api.state_summary("bauchi", None)["trend"]
     assert {"act_now", "verify_then_act", "warmup"} <= t[0].keys()
     assert t[0]["warmup"] is True and t[-1]["warmup"] is False
 

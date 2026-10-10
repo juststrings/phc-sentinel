@@ -6,4 +6,6 @@ data/eval
 data/marts
 data/staging
 data/logs
+data/states
+data/national
 **/__pycache__

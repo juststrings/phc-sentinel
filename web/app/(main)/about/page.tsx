@@ -1,6 +1,9 @@
 import Icon from "@/components/Icon";
 import { QUEUE_CLASS, queueStyle } from "@/lib/tokens";
-import { api } from "@/lib/api";
+import type { Metadata } from "next";
+import { api, int } from "@/lib/api";
+
+export const metadata: Metadata = { title: "Method & data" };
 
 const FAMILY_LABEL: Record<string, string> = {
   completeness: "Completeness", timeliness: "Timeliness", silence: "Silence", outliers: "Outliers",
@@ -11,8 +14,9 @@ const TOC = [
   ["risk", "2. How risk is assessed"],
   ["confidence", "3. How confidence is assessed"],
   ["thresholds", "4. Thresholds and sources"],
-  ["sources", "5. Data sources"],
-  ["limits", "6. Limitations and scope"],
+  ["sources", "5. Data sources and coverage"],
+  ["access", "6. Access in the demo and a pilot"],
+  ["limits", "7. Limitations and scope"],
 ];
 const humanise = (s: string) => s.replace(/_/g, " ");
 const show = (v: unknown) => (Array.isArray(v) ? v.join(", ") : typeof v === "boolean" ? (v ? "yes" : "no") : String(v));
@@ -32,8 +36,8 @@ function QueueCard({ tag, blurb }: { tag: string; blurb: string }) {
 }
 
 export default async function Method() {
-  const [labels, cfg, rules, th] = await Promise.all([
-    api("/meta/data-labels"), api("/meta/settings"), api("/meta/rules"), api("/meta/thresholds"),
+  const [labels, cfg, rules, th, st] = await Promise.all([
+    api("/meta/data-labels"), api("/meta/settings"), api("/meta/rules"), api("/meta/thresholds"), api("/national/states"),
   ]);
   const s = cfg.settings;
   const families = [...new Set<string>(rules.rules.map((r: any) => r.family))];
@@ -164,7 +168,7 @@ export default async function Method() {
         </section>
 
         <section className="space-y-3">
-          <H id="sources">5. Data sources</H>
+          <H id="sources">5. Data sources and coverage</H>
           <p className="max-w-2xl text-[13px] text-ink-2">
             Monthly reports follow the DHIS2 dataset &ldquo;{th.dhis2_dataset}&rdquo; (deadline {s.reporting.dhis2_deadline_days} days after month end).
             Commodity reports follow the NHLMIS cycle of {s.reporting.nhlmis_cycle_months} months (deadline {s.reporting.nhlmis_deadline_days} days after period end).
@@ -187,9 +191,57 @@ export default async function Method() {
         </section>
 
         <section className="space-y-3">
-          <H id="limits">6. Limitations and scope</H>
+          <p className="max-w-2xl text-[13px] text-ink-2">
+            Coverage is {st.states.length} states, two per geopolitical zone. Facility lists are GRID3 Health Facilities v3.0, filtered to public
+            primary facilities. Lagos, Anambra, Rivers and Cross River are not in GRID3 v3.0, so same-zone states stand in: Ogun for Lagos, Abia for
+            Anambra, and Delta and Bayelsa for Rivers and Cross River.
+          </p>
+          <div className="card overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="th border-b border-line text-left">
+                  <th className="px-3 py-2">Zone</th><th className="px-3 py-2">State</th>
+                  <th className="px-3 py-2 text-right">Public PHCs</th><th className="px-3 py-2 text-right">LGAs</th>
+                  <th className="px-3 py-2 text-right">Location unverified</th>
+                </tr>
+              </thead>
+              <tbody>
+                {st.states.map((r: any) => (
+                  <tr key={r.state_code} className="border-b border-line last:border-0">
+                    <td className="px-3 py-2 text-ink-3">{r.zone}</td>
+                    <td className="px-3 py-2 font-medium">{r.state}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{int(r.facilities)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{r.lgas}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{r.location_unverified}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="max-w-2xl text-[12px] text-ink-3">
+            Each point is checked against its own LGA polygon. Outside it but within {s.geography.near_boundary_km} km is <strong>Near boundary</strong> and
+            stays on the map; further away is <strong>Location unverified</strong>: the facility stays in every queue but is not drawn on the map.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <H id="access">6. Access in the demo and a pilot</H>
+          <div className="card space-y-2 p-4 text-[13px] text-ink-2">
+            <p>
+              The demo has <strong>no login</strong>: every view has its own address (<code>/national</code>, <code>/state/&#123;code&#125;</code>) so
+              reviewers can reach any of them in one click.
+            </p>
+            <p>
+              A pilot would add <strong>real authentication with state-scoped access</strong>: a State PHC Board or LGA team sees only its own state and
+              LGAs; federal users (FMoH, NPHCDA) see the national roll-up and can open any state. The API would enforce the same scopes, not only the interface.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <H id="limits">7. Limitations and scope</H>
           <ul className="list-disc space-y-2 pl-5 text-[13px] text-ink-2">
-            <li><strong>Simulated data.</strong> Operational history is simulated over {s.simulator.history_months} months to test the triage logic. We do not claim real-world predictive accuracy.</li>
+            <li><strong>Simulated data.</strong> Operational history is simulated over {s.simulator.history_months} months in every state to test the triage logic. We do not claim real-world predictive accuracy.</li>
             <li><strong>Thresholds</strong> come from policy, WHO DQR practice or statistical convention, and are configurable. We do not claim they are optimal.</li>
             <li><strong>Scope</strong> is malaria commodities, vaccines and cold chain, and service demand. General essential medicines and daily staffing are not covered.</li>
             <li><strong>Coordinate anomalies.</strong> Facilities with coordinates outside their LGA stay in the queues so none is silently omitted.</li>

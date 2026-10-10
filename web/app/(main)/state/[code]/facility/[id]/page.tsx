@@ -12,9 +12,9 @@ const isKnown = (v: unknown) => v != null && String(v).trim() !== "" && !/^unkno
 const SEV_ORDER: Record<string, number> = { severe: 0, major: 1, minor: 2 };
 
 export default async function FacilityDetail({ params, searchParams }: {
-  params: Promise<{ id: string }>; searchParams: Promise<{ month?: string }>;
+  params: Promise<{ code: string; id: string }>; searchParams: Promise<{ month?: string }>;
 }) {
-  const { id } = await params;
+  const { code, id } = await params;
   const { month: m } = await searchParams;
   const meta = await api("/meta/months");
   const month = m ?? meta.latest;
@@ -22,7 +22,7 @@ export default async function FacilityDetail({ params, searchParams }: {
   let d: any, qd: any;
   const cfg = await api("/meta/settings");
   try {
-    [d, qd] = await Promise.all([api(`/facility/${id}`, month), api(`/quality/${id}`, month)]);
+    [d, qd] = await Promise.all([api(`/state/${code}/facility/${id}`, month), api(`/state/${code}/quality/${id}`, month)]);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
       // Unknown facility, or one with no analysis row for this month: say so plainly.
@@ -33,8 +33,8 @@ export default async function FacilityDetail({ params, searchParams }: {
             {e.message.includes("unknown facility") ? "No facility has this ID." : `There is no analysis for this facility in ${monthLabel(month)}. Pick another month, or go back to the directory.`}
           </p>
           <div className="mt-4 flex justify-center gap-3 text-[13px]">
-            <Link className="rounded border border-line px-3 py-1.5 hover:bg-muted" href="/facilities">Facilities</Link>
-            <Link className="rounded border border-line px-3 py-1.5 hover:bg-muted" href={`/?month=${meta.latest}`}>Latest month</Link>
+            <Link className="rounded border border-line px-3 py-1.5 hover:bg-muted" href={`/state/${code}/facilities`}>Facilities</Link>
+            <Link className="rounded border border-line px-3 py-1.5 hover:bg-muted" href={`/state/${code}/facilities?month=${meta.latest}`}>Latest month</Link>
           </div>
         </div>
       );
@@ -49,8 +49,8 @@ export default async function FacilityDetail({ params, searchParams }: {
     <div className="mx-auto max-w-[1280px] space-y-4">
       <div>
         <p className="text-[12px] text-ink-3">
-          <Link href={`/facilities?month=${month}`} className="hover:underline">Facilities</Link> /{" "}
-          <Link href={`/lga/${f.lga_id}?month=${month}`} className="hover:underline">{f.lga}</Link>
+          <Link href={`/state/${code}/facilities?month=${month}`} className="hover:underline">{d.state.name} facilities</Link> /{" "}
+          <Link href={`/state/${code}/lga/${f.lga_id}?month=${month}`} className="hover:underline">{f.lga}</Link>
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-[24px] font-semibold leading-8 text-ink">{f.name}</h1>
@@ -58,8 +58,8 @@ export default async function FacilityDetail({ params, searchParams }: {
         </div>
         <p className="text-[13px] text-ink-3">
           {f.ward} ward · {f.lga} LGA · <span className="font-mono">{f.facility_id}</span> · {monthLabel(month)}
-          {f.coord_status === "invalid" && (
-            <span className="ml-2 inline-flex items-center gap-1 text-verify-then-act"><Icon name="flag" size={12} /> coordinates outside this LGA</span>
+          {f.coord_status === "location_unverified" && (
+            <span className="ml-2 inline-flex items-center gap-1 text-verify-then-act"><Icon name="flag" size={12} /> location unverified</span>
           )}
         </p>
       </div>

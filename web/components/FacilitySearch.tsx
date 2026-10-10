@@ -2,9 +2,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-interface Hit { facility_id: string; name: string; lga: string; ward: string }
+interface Hit { facility_id: string; name: string; lga: string; ward: string; state_code: string }
 
-export default function FacilitySearch() {
+export default function FacilitySearch({ states }: { states: { code: string; name: string }[] }) {
   const router = useRouter();
   const month = useSearchParams().get("month");
   const [text, setText] = useState("");
@@ -30,9 +30,9 @@ export default function FacilitySearch() {
     return () => document.removeEventListener("mousedown", close);
   }, []);
 
-  const go = (id: string) => {
+  const go = (h: Hit) => {
     setOpen(false); setText("");
-    router.push(`/facility/${id}${month ? `?month=${month}` : ""}`);
+    router.push(`/state/${h.state_code}/facility/${h.facility_id}${month ? `?month=${month}` : ""}`);
   };
 
   return (
@@ -40,20 +40,20 @@ export default function FacilitySearch() {
       <input
         type="search"
         aria-label="Search facilities"
-        placeholder="Search facilities"
+        placeholder="Search facilities (all states)"
         value={text}
         onChange={(e) => { setText(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
-        onKeyDown={(e) => { if (e.key === "Enter" && hits[0]) go(hits[0].facility_id); }}
+        onKeyDown={(e) => { if (e.key === "Enter" && hits[0]) go(hits[0]); }}
         className="w-full rounded border border-line bg-card px-3 py-1.5 text-[13px] text-ink placeholder:text-ink-3"
       />
       {open && hits.length > 0 && (
         <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded border border-line bg-card">
           {hits.map((h) => (
             <li key={h.facility_id}>
-              <button type="button" onClick={() => go(h.facility_id)} className="block w-full px-3 py-2 text-left hover:bg-muted">
+              <button type="button" onClick={() => go(h)} className="block w-full px-3 py-2 text-left hover:bg-muted">
                 <div className="text-[13px] font-medium text-ink">{h.name}</div>
-                <div className="text-[12px] text-ink-3">{h.ward} · {h.lga}</div>
+                <div className="text-[12px] text-ink-3">{h.ward} · {h.lga} · {states.find((x) => x.code === h.state_code)?.name ?? h.state_code}</div>
               </button>
             </li>
           ))}

@@ -1,6 +1,7 @@
 services:
   db:
     image: postgis/postgis:16-3.4-alpine
+    shm_size: 512mb                     # 12 states: default 64 MB is too small for index builds
     environment:
       POSTGRES_DB: sentinel
       POSTGRES_USER: sentinel
@@ -15,13 +16,16 @@ services:
       timeout: 5s
       retries: 20
 
-  # Runs the full pipeline (facility master -> simulator -> engines) and loads
-  # the database. Exits when done; the API starts after it succeeds.
+  # Runs the full pipeline for every state in settings.yaml (facility master ->
+  # simulator -> engines, SENTINEL_WORKERS states in parallel), builds the national
+  # marts and loads the database (~20-25 min for 12 states). Exits when done; the
+  # API starts after it succeeds.
   pipeline:
     build: .
     command: sh -c "python -m sentinel all && python -m sentinel load-db"
     environment:
       DATABASE_URL: postgresql+psycopg://sentinel:sentinel@db:5432/sentinel
+      SENTINEL_WORKERS: "3"           # ~1.5 GB RAM per worker; lower it on small machines
     depends_on:
       db:
         condition: service_healthy

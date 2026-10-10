@@ -1,0 +1,221 @@
+{
+ "facility_months": 52344,
+ "facility_month_sha256": "427b2910238073466e082ac73fb46a687580e7f57bff59bd1196124075026e51",
+ "lga_month_sha256": "0a9595637fba7d4c5921bb1903a3078ee57a06d0917cfeafca4543e7a28e5040",
+ "quality_flags_sha256": "93975b7231a2311f801e139b9b97a702ac3c679ba10d60146a169bcad5f74571",
+ "flags_rows": 54301,
+ "tags_by_month": {
+  "2023-10": {
+   "DO NOT ASSUME SAFE": 1397,
+   "VERIFY THEN ACT": 57
+  },
+  "2023-11": {
+   "DO NOT ASSUME SAFE": 1402,
+   "VERIFY THEN ACT": 52
+  },
+  "2023-12": {
+   "MONITOR": 710,
+   "DO NOT ASSUME SAFE": 572,
+   "ACT NOW": 121,
+   "VERIFY THEN ACT": 51
+  },
+  "2024-01": {
+   "MONITOR": 763,
+   "DO NOT ASSUME SAFE": 511,
+   "ACT NOW": 127,
+   "VERIFY THEN ACT": 53
+  },
+  "2024-02": {
+   "MONITOR": 748,
+   "DO NOT ASSUME SAFE": 618,
+   "ACT NOW": 46,
+   "VERIFY THEN ACT": 42
+  },
+  "2024-03": {
+   "MONITOR": 758,
+   "DO NOT ASSUME SAFE": 599,
+   "ACT NOW": 65,
+   "VERIFY THEN ACT": 32
+  },
+  "2024-04": {
+   "MONITOR": 732,
+   "DO NOT ASSUME SAFE": 629,
+   "ACT NOW": 57,
+   "VERIFY THEN ACT": 36
+  },
+  "2024-05": {
+   "MONITOR": 801,
+   "DO NOT ASSUME SAFE": 554,
+   "ACT NOW": 70,
+   "VERIFY THEN ACT": 29
+  },
+  "2024-06": {
+   "MONITOR": 648,
+   "DO NOT ASSUME SAFE": 608,
+   "ACT NOW": 156,
+   "VERIFY THEN ACT": 42
+  },
+  "2024-07": {
+   "MONITOR": 589,
+   "DO NOT ASSUME SAFE": 561,
+   "ACT NOW": 252,
+   "VERIFY THEN ACT": 52
+  },
+  "2024-08": {
+   "DO NOT ASSUME SAFE": 541,
+   "ACT NOW": 409,
+   "MONITOR": 376,
+   "VERIFY THEN ACT": 128
+  },
+  "2024-09": {
+   "DO NOT ASSUME SAFE": 504,
+   "ACT NOW": 427,
+   "MONITOR": 410,
+   "VERIFY THEN ACT": 113
+  },
+  "2024-10": {
+   "DO NOT ASSUME SAFE": 573,
+   "MONITOR": 559,
+   "ACT NOW": 218,
+   "VERIFY THEN ACT": 104
+  },
+  "2024-11": {
+   "MONITOR": 592,
+   "DO NOT ASSUME SAFE": 508,
+   "ACT NOW": 256,
+   "VERIFY THEN ACT": 98
+  },
+  "2024-12": {
+   "MONITOR": 662,
+   "DO NOT ASSUME SAFE": 608,
+   "ACT NOW": 136,
+   "VERIFY THEN ACT": 48
+  },
+  "2025-01": {
+   "MONITOR": 709,
+   "DO NOT ASSUME SAFE": 536,
+   "ACT NOW": 147,
+   "VERIFY THEN ACT": 62
+  },
+  "2025-02": {
+   "MONITOR": 726,
+   "DO NOT ASSUME SAFE": 604,
+   "ACT NOW": 90,
+   "VERIFY THEN ACT": 34
+  },
+  "2025-03": {
+   "MONITOR": 786,
+   "DO NOT ASSUME SAFE": 558,
+   "ACT NOW": 74,
+   "VERIFY THEN ACT": 36
+  },
+  "2025-04": {
+   "MONITOR": 705,
+   "DO NOT ASSUME SAFE": 631,
+   "ACT NOW": 83,
+   "VERIFY THEN ACT": 35
+  },
+  "2025-05": {
+   "MONITOR": 769,
+   "DO NOT ASSUME SAFE": 565,
+   "ACT NOW": 87,
+   "VERIFY THEN ACT": 33
+  },
+  "2025-06": {
+   "MONITOR": 697,
+   "DO NOT ASSUME SAFE": 621,
+   "ACT NOW": 85,
+   "VERIFY THEN ACT": 51
+  },
+  "2025-07": {
+   "MONITOR": 755,
+   "DO NOT ASSUME SAFE": 560,
+   "ACT NOW": 95,
+   "VERIFY THEN ACT": 44
+  },
+  "2025-08": {
+   "MONITOR": 594,
+   "DO NOT ASSUME SAFE": 566,
+   "ACT NOW": 192,
+   "VERIFY THEN ACT": 102
+  },
+  "2025-09": {
+   "MONITOR": 593,
+   "DO NOT ASSUME SAFE": 540,
+   "ACT NOW": 244,
+   "VERIFY THEN ACT": 77
+  },
+  "2025-10": {
+   "DO NOT ASSUME SAFE": 567,
+   "MONITOR": 548,
+   "ACT NOW": 236,
+   "VERIFY THEN ACT": 103
+  },
+  "2025-11": {
+   "MONITOR": 582,
+   "DO NOT ASSUME SAFE": 524,
+   "ACT NOW": 263,
+   "VERIFY THEN ACT": 85
+  },
+  "2025-12": {
+   "MONITOR": 638,
+   "DO NOT ASSUME SAFE": 587,
+   "ACT NOW": 136,
+   "VERIFY THEN ACT": 93
+  },
+  "2026-01": {
+   "MONITOR": 648,
+   "DO NOT ASSUME SAFE": 580,
+   "ACT NOW": 169,
+   "VERIFY THEN ACT": 57
+  },
+  "2026-02": {
+   "MONITOR": 690,
+   "DO NOT ASSUME SAFE": 642,
+   "ACT NOW": 70,
+   "VERIFY THEN ACT": 52
+  },
+  "2026-03": {
+   "MONITOR": 722,
+   "DO NOT ASSUME SAFE": 625,
+   "ACT NOW": 81,
+   "VERIFY THEN ACT": 26
+  },
+  "2026-04": {
+   "MONITOR": 729,
+   "DO NOT ASSUME SAFE": 613,
+   "ACT NOW": 70,
+   "VERIFY THEN ACT": 42
+  },
+  "2026-05": {
+   "MONITOR": 746,
+   "DO NOT ASSUME SAFE": 598,
+   "ACT NOW": 73,
+   "VERIFY THEN ACT": 37
+  },
+  "2026-06": {
+   "MONITOR": 701,
+   "DO NOT ASSUME SAFE": 621,
+   "ACT NOW": 82,
+   "VERIFY THEN ACT": 50
+  },
+  "2026-07": {
+   "MONITOR": 732,
+   "DO NOT ASSUME SAFE": 604,
+   "ACT NOW": 84,
+   "VERIFY THEN ACT": 34
+  },
+  "2026-08": {
+   "DO NOT ASSUME SAFE": 628,
+   "MONITOR": 578,
+   "ACT NOW": 177,
+   "VERIFY THEN ACT": 71
+  },
+  "2026-09": {
+   "MONITOR": 613,
+   "DO NOT ASSUME SAFE": 581,
+   "ACT NOW": 188,
+   "VERIFY THEN ACT": 72
+  }
+ }
+}

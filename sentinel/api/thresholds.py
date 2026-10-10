@@ -11,8 +11,9 @@ from pathlib import Path
 from ..config import CONFIG_DIR, settings
 
 BASES = ("POLICY-ALIGNED", "POLICY", "WHO-DQR", "STAT", "DESIGN")
-SKIP_SECTIONS = {"state", "simulator", "decision"}      # not thresholds
-SKIP_KEYS = {("calendar", "first_period"), ("calendar", "last_period")}   # the simulated date range, not a threshold
+SKIP_SECTIONS = {"state", "default_state", "zones", "states", "simulator", "decision"}      # not thresholds
+SKIP_KEYS = {("calendar", "first_period"), ("calendar", "last_period"),          # the simulated date range
+             ("national", "trend_months"), ("national", "top_lgas_in_brief")}      # display settings, not thresholds
 
 # settings.yaml cites sources by bracket number or by proposal section. Bracket 10 is the national min-max
 # inventory policy (docs/assumptions.md A2); proposal sections are internal references and are dropped, so a
@@ -33,23 +34,42 @@ def _clean_note(note: str) -> str:
 
 
 def thresholds() -> list[dict]:
+    """One row per threshold. A basis tag can sit in a trailing comment or on a comment line just above the key;
+    keys nested one level (national.status) inherit the parent's tag."""
     values = settings()
     rows: list[dict] = []
-    section = None
+    section = parent = None
+    pending: str | None = None          # basis tag found on a comment line above the next key
+    parent_basis: str | None = None
     for line in (CONFIG_DIR / "settings.yaml").read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            tag = next((b for b in BASES if stripped.lstrip("# ").startswith(b)), None)
+            pending = tag or pending
+            continue
         m = _KEY.match(line)
-        if not m or line.lstrip().startswith("#"):
+        if not m:
             continue
         indent, key, rest = len(m.group(1)), m.group(2), m.group(3)
         if indent == 0:
-            section = key
+            section, parent, pending, parent_basis = key, None, None, None
             continue
-        if section in SKIP_SECTIONS or (section, key) in SKIP_KEYS or section not in values or key not in values[section]:
+        if section in SKIP_SECTIONS or section not in values or not isinstance(values[section], dict):
             continue
         note = rest.split("#", 1)[1].strip() if "#" in rest else ""
-        basis = next((b for b in BASES if note.startswith(b)), None)
-        rows.append({"section": section, "key": key, "value": values[section][key], "basis": basis,
-                     "note": _clean_note(note[len(basis):] if basis else note)})
+        basis = next((b for b in BASES if note.startswith(b)), None) or pending
+        if indent == 2:
+            parent, parent_basis = key, basis
+            pending = None
+            if key not in values[section] or (section, key) in SKIP_KEYS or isinstance(values[section][key], dict):
+                continue
+            value, name = values[section][key], key
+        elif indent == 4 and parent and isinstance(values[section].get(parent), dict) and key in values[section][parent]:
+            value, name, basis = values[section][parent][key], f"{parent}_{key}", basis or parent_basis
+        else:
+            continue
+        rows.append({"section": section, "key": name, "value": value, "basis": basis,
+                     "note": _clean_note(note[len(basis):] if basis and note.startswith(basis) else note)})
     return rows
 
 

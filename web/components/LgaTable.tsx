@@ -22,7 +22,7 @@ function Bar({ row }: { row: any }) {
   );
 }
 
-export default function LgaTable({ rows, month }: { rows: any[]; month: string }) {
+export default function LgaTable({ rows, month, code }: { rows: any[]; month: string; code: string }) {
   return (
     <section className="card" aria-label="LGA table">
       <div className="flex items-baseline justify-between px-4 pt-4">
@@ -48,7 +48,7 @@ export default function LgaTable({ rows, month }: { rows: any[]; month: string }
               <tr key={r.lga_id} className="border-b border-line last:border-0 hover:bg-muted">
                 <td className="px-1.5 py-2 text-ink-3 tabular-nums">{r.lga_rank}</td>
                 <td className="px-1.5 py-2 font-medium">
-                  <Link href={`/lga/${r.lga_id}?month=${month}`} className="hover:underline">{r.lga}</Link>
+                  <Link href={`/state/${code}/lga/${r.lga_id}?month=${month}`} className="hover:underline">{r.lga}</Link>
                 </td>
                 <td className="px-1.5 py-2 text-right tabular-nums">{r.facilities}</td>
                 <td className="px-1.5 py-2"><Bar row={r} /></td>

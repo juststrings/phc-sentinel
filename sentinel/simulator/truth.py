@@ -13,8 +13,7 @@ import pandas as pd
 
 from ..config import settings
 
-# Bauchi malaria seasonality, Jan..Dec: rainy-season peak Aug-Oct.
-MALARIA_SEASON = np.array([0.55, 0.50, 0.50, 0.55, 0.70, 0.90, 1.20, 1.60, 1.80, 1.60, 1.00, 0.70])
+# Malaria seasonality comes from settings (simulator.seasonality), one profile per state.
 RI_SEASON = np.array([1.00, 1.00, 1.05, 1.05, 1.00, 0.95, 0.90, 0.85, 0.90, 1.00, 1.05, 1.10])
 
 COMMODITIES = ["ACT_AL_ADULT", "ACT_AL_CHILD", "RDT_MAL"]
@@ -30,19 +29,23 @@ class Truth:
     events: list[dict]                # scenarios planted in the truth
 
 
-def facility_attributes(dim: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
+def facility_attributes(dim: pd.DataFrame, rng: np.random.Generator, sim: dict) -> pd.DataFrame:
+    """`sim` holds the state's labelled simulator parameters (settings.yaml,
+    simulator.state_defaults + the state's overrides). The draw order is fixed, so a
+    state with default parameters reproduces the original Bauchi simulation exactly."""
     n = len(dim)
     lgas = dim["lga"].unique()
-    # LGA-level heterogeneity in reporting and supply, anchored on published
+    # LGA-level heterogeneity in reporting and supply. Defaults are anchored on published
     # Bauchi RI reporting (~65% timeliness, ~71% completeness in a weak LGA) [14].
-    lga_report = dict(zip(lgas, rng.uniform(0.74, 0.95, len(lgas))))
-    lga_timely = dict(zip(lgas, rng.uniform(0.75, 0.95, len(lgas))))
-    lga_supply = dict(zip(lgas, rng.uniform(0.84, 0.97, len(lgas))))
-    lga_lmis = dict(zip(lgas, rng.uniform(0.70, 0.95, len(lgas))))
+    lga_report = dict(zip(lgas, rng.uniform(*sim["report_range"], len(lgas))))
+    lga_timely = dict(zip(lgas, rng.uniform(*sim["timely_range"], len(lgas))))
+    lga_supply = dict(zip(lgas, rng.uniform(*sim["supply_range"], len(lgas))))
+    lga_lmis = dict(zip(lgas, rng.uniform(*sim["lmis_range"], len(lgas))))
 
     a = pd.DataFrame({"facility_id": dim["facility_id"].values, "lga": dim["lga"].values})
-    a["base_opd"] = np.clip(rng.lognormal(np.log(350), 0.6, n), 40, 3000)
-    a["malaria_share"] = rng.beta(5, 15, n)                    # ~25% of OPD at season index 1
+    a["base_opd"] = np.clip(rng.lognormal(np.log(sim["base_opd_median"]), 0.6, n), 40, 3000)
+    # ~25% of OPD at season index 1, scaled by the state's relative malaria burden.
+    a["malaria_share"] = np.clip(rng.beta(5, 15, n) * sim["malaria_burden"], 0, 0.9)
     a["positivity"] = rng.uniform(0.40, 0.70, n)
     a["anc_rate"] = rng.uniform(0.04, 0.08, n)
     a["delivery_rate"] = rng.uniform(0.02, 0.05, n)
@@ -59,12 +62,13 @@ def facility_attributes(dim: pd.DataFrame, rng: np.random.Generator) -> pd.DataF
     return a
 
 
-def simulate_truth(dim: pd.DataFrame, rng: np.random.Generator) -> Truth:
+def simulate_truth(dim: pd.DataFrame, rng: np.random.Generator, sim: dict) -> Truth:
     s = settings()
     cal = s["calendar"]
     months = list(pd.period_range(cal["first_period"], cal["last_period"], freq="M"))
     T, F = len(months), len(dim)
-    attrs = facility_attributes(dim, rng)
+    attrs = facility_attributes(dim, rng, sim)
+    malaria_season = np.array(s["simulator"]["seasonality"][sim["season"]], dtype=float)
     scen = s["simulator"]
 
     # ---- Planted scenarios ---------------------------------------------------
@@ -116,7 +120,7 @@ def simulate_truth(dim: pd.DataFrame, rng: np.random.Generator) -> Truth:
     years = np.arange(T) / 12.0
     noise = rng.lognormal(0, 0.12, (T, F))
     level = attrs["base_opd"].values[None, :] * (1 + attrs["trend"].values[None, :] * years[:, None]) * noise
-    mal_season = MALARIA_SEASON[cal_idx][:, None]
+    mal_season = malaria_season[cal_idx][:, None]
     opd_season = 0.8 + 0.2 * mal_season
     malaria_mu = level * attrs["malaria_share"].values * mal_season * demand_mult
     confirmed = rng.poisson(malaria_mu)

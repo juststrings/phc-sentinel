@@ -1,7 +1,7 @@
 """Phases 3-6: ingest exports -> monthly spine -> DQR -> risk -> confidence -> queues.
 
-Reads ONLY data/exports (the same files a state would supply) and the facility
-master. Never reads data/eval.
+Runs one state at a time. Reads ONLY that state's exports (the same files a state
+would supply) and its facility master. Never reads the answer key (eval/).
 """
 from __future__ import annotations
 
@@ -11,17 +11,18 @@ import time
 import pandas as pd
 
 from . import periods as P
-from .config import EXPORTS_DIR, LOGS_DIR, MARTS_DIR, STAGING_DIR
+from .config import StatePaths, state
 from .engines import decision, dqr, risk
 from .engines.baseline import robust_z
 from .ingest import dhis2, nhlmis
 from .spine import build_month
 
 
-def ingest(dim: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def ingest(dim: pd.DataFrame, paths: StatePaths) -> tuple[pd.DataFrame, pd.DataFrame]:
+    LOGS_DIR, STAGING_DIR = paths.logs, paths.staging
     rejections: list = []
-    stg, monthly = dhis2.load(EXPORTS_DIR, dim, rejections)
-    lm = nhlmis.load(EXPORTS_DIR, dim, rejections)
+    stg, monthly = dhis2.load(paths.exports, dim, rejections)
+    lm = nhlmis.load(paths.exports, dim, rejections)
     rej = pd.concat(rejections, ignore_index=True) if rejections else pd.DataFrame(columns=["source", "reason", "row"])
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     rej.to_csv(LOGS_DIR / "rejections.csv", index=False)
@@ -29,7 +30,7 @@ def ingest(dim: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     stg.to_parquet(STAGING_DIR / "stg_dhis2_values.parquet", index=False)
     monthly.to_parquet(STAGING_DIR / "fact_dhis2_monthly.parquet", index=False)
     lm.assign(period_start=lm["period_start"].astype(str)).to_parquet(STAGING_DIR / "fact_nhlmis_bimonthly.parquet", index=False)
-    print(f"Ingest: {len(stg):,} DHIS2 rows -> {len(monthly):,} facility-months; "
+    print(f"Ingest {paths.code}: {len(stg):,} DHIS2 rows -> {len(monthly):,} facility-months; "
           f"{len(lm):,} NHLMIS rows; {len(rej):,} rejected ({rej['reason'].value_counts().to_dict() if len(rej) else {}})")
     return monthly, lm
 
@@ -45,10 +46,12 @@ def evaluate_month(month: pd.Period, dim, monthly, lm) -> dict:
     return {"flags": flags, "domains": domains, "facility_month": fm, "queue": q, "commodity": cm, "z": z.assign(analysis_month=str(month))}
 
 
-def run(months: list[pd.Period] | None = None) -> None:
+def run(code: str, months: list[pd.Period] | None = None) -> None:
     t0 = time.time()
-    dim = pd.read_parquet(STAGING_DIR / "dim_facility.parquet")
-    monthly, lm = ingest(dim)
+    paths = StatePaths(code).ensure()
+    MARTS_DIR = paths.marts
+    dim = pd.read_parquet(paths.staging / "dim_facility.parquet")
+    monthly, lm = ingest(dim, paths)
     months = months or P.analysis_months()
     acc: dict[str, list] = {}
     for m in months:
@@ -69,7 +72,7 @@ def run(months: list[pd.Period] | None = None) -> None:
     lga.to_parquet(MARTS_DIR / "mart_lga_month.parquet", index=False)
 
     last = fm[fm["analysis_month"] == str(months[-1])]
-    print(f"Pipeline: {len(months)} months in {time.time() - t0:.0f}s. Latest month {months[-1]}:")
+    print(f"Pipeline {state(code)['name']}: {len(months)} months in {time.time() - t0:.0f}s. Latest month {months[-1]}:")
     print("  queues     ", last["queue"].value_counts().to_dict())
     print("  tags       ", last["tag"].value_counts().to_dict())
     print("  confidence ", last["data_confidence"].value_counts().to_dict())

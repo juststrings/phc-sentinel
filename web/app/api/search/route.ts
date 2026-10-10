@@ -5,8 +5,8 @@ import { api } from "@/lib/api";
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q") ?? "";
   if (q.trim().length < 2) return NextResponse.json([]);
-  const r = await api<any>(`/facilities?q=${encodeURIComponent(q)}&page_size=8`);
+  const r = await api<any>(`/search?q=${encodeURIComponent(q)}&limit=8`);
   return NextResponse.json(
-    r.facilities.map((f: any) => ({ facility_id: f.facility_id, name: f.name, lga: f.lga, ward: f.ward })),
+    r.facilities.map((f: any) => ({ facility_id: f.facility_id, name: f.name, lga: f.lga, ward: f.ward, state_code: f.state_code })),
   );
 }

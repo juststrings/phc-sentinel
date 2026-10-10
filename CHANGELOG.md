@@ -5,6 +5,29 @@
 The web app was restyled to match the Stitch design. Engines, thresholds, queue rules and the database schema are unchanged.
 All numbers still come from the FastAPI API; nothing from the Stitch files' placeholder data was copied.
 
+### Merged with `main`: 12 states and the National Command Centre
+
+`origin/main` gained 12-state coverage (two states per geopolitical zone), state-scoped API routes and a National Command Centre.
+This branch merges it (main itself is untouched) and carries the restyle across:
+
+- **Routes:** the restyled pages now live under `/state/{code}/...` (overview, LGA queues, facilities, facility detail); `/about` is Method;
+  `/` (role switcher), `/national` and `/national/briefing` are main's pages. Old `/lga/{id}` and `/facility/{id}` still redirect.
+- **Shell:** the sidebar has a **View** switcher (National Command Centre or any state, grouped by zone) and state-aware links.
+  The top-bar search finds facilities in every state. The theme toggle is in the top bar.
+- **National, landing and briefing pages** keep main's components. Their old stylesheet is scoped to a `.legacy` wrapper
+  (`web/app/legacy.css`, `postcss.config.mjs`) and mapped onto the design tokens, so they follow light/dark and cannot affect the new pages.
+  Restyling them to the Stitch look is a follow-up. The national map follows the theme toggle.
+- **API:** the restyle's endpoints are state-scoped: `/state/{code}/insights`, `/state/{code}/coords`, `/state/{code}/facilities`,
+  plus `/search` (all states). `/meta/rules` and `/meta/thresholds` stay global; the thresholds table now also shows the state-status
+  and geography thresholds. A facility with no row for the month returns 404.
+- **Coordinates:** main's two tags are used: *Near boundary* (kept on the map) and *Location unverified* (kept in every queue, not drawn).
+  The state overview reports both the unverified count and how many are outside the state.
+- **Method page** gains the 12-state coverage table and the access section (demo has no login; a pilot adds state-scoped access).
+- **Tests:** 68 pass in `pytest -m "not slow"` (1 skipped) and 4 in `npm test`.
+
+> Windows note: `python -m sentinel all` fails on Windows (its process pool cannot unpickle `_state_all` under spawn, in code pushed to main).
+> The same per-state steps were run in separate processes instead, then `python -m sentinel national` and `load-db`.
+
 ### Web app (`web/`)
 - **Design system:** Tailwind with CSS-variable tokens (`web/app/globals.css`, `web/lib/tokens.ts`). Queue colours are named tokens:
   act-now (deep red), verify-then-act (amber), do-not-assume-safe (indigo with a diagonal hatch), monitor (teal).
@@ -42,6 +65,6 @@ the disease tabs and dispatch buttons from `DESIGN.md`, a Penta dropout gauge (t
 ### Run and verify
 ```bash
 docker compose up --build            # or the local steps in the main README
-python -m pytest                     # 46 tests
+python -m pytest -m "not slow"       # 68 tests
 cd web && npm test && npm run build  # stop `next dev` before building
 ```

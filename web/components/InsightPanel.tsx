@@ -2,7 +2,7 @@ import Link from "next/link";
 import { pct } from "@/lib/api";
 
 /** "This week": every line is generated from /state/insights. A line is omitted if its data is missing. */
-export default function InsightPanel({ ins, month }: { ins: any; month: string }) {
+export default function InsightPanel({ ins, month, code }: { ins: any; month: string; code: string }) {
   const items: { key: string; body: React.ReactNode }[] = [];
   const a = ins.most_act_now_lga;
   if (a && a.act_now > 0)
@@ -10,7 +10,7 @@ export default function InsightPanel({ ins, month }: { ins: any; month: string }
       key: "act",
       body: (
         <>
-          <Link className="font-semibold underline-offset-2 hover:underline" href={`/lga/${a.lga_id}?month=${month}`}>{a.lga}</Link>{" "}
+          <Link className="font-semibold underline-offset-2 hover:underline" href={`/state/${code}/lga/${a.lga_id}?month=${month}`}>{a.lga}</Link>{" "}
           has the most Act now PHCs ({a.act_now}).
         </>
       ),
@@ -21,7 +21,7 @@ export default function InsightPanel({ ins, month }: { ins: any; month: string }
       key: "ontime",
       body: (
         <>
-          <Link className="font-semibold underline-offset-2 hover:underline" href={`/lga/${o.lga_id}?month=${month}`}>{o.lga}</Link>{" "}
+          <Link className="font-semibold underline-offset-2 hover:underline" href={`/state/${code}/lga/${o.lga_id}?month=${month}`}>{o.lga}</Link>{" "}
           has the lowest on-time reporting: {pct(o.on_time_rate)} of {o.facilities} PHCs.
         </>
       ),

@@ -10,6 +10,8 @@ data/eval/
 data/marts/
 data/staging/
 data/logs/
+data/states/
+data/national/
 
 node_modules/
 .next/

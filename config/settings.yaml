@@ -3,7 +3,49 @@
 # review method), STAT (statistical convention) or DESIGN (design judgement,
 # sensitivity-tested). See docs/assumptions.md.
 
-state: Bauchi
+# ---- Coverage ------------------------------------------------------------------
+# Demo states: two per geopolitical zone, in display order. `code` is the URL key
+# (/state/{code}). GRID3 spells some state names differently in the facility and
+# boundary layers, so both are listed. `grid3_code` is GRID3's two-letter state
+# code, also used as the synthetic LMIS facility-code prefix.
+# Lagos, Anambra, Rivers and Cross River are not in GRID3 Health Facilities v3.0;
+# same-zone substitutes are used (docs/decisions.md, D9).
+# `lga_aliases`: facility-layer LGA spelling -> boundary-layer spelling (normalised keys).
+# `sim`: per-state simulator overrides of simulator.state_defaults (labelled, see
+# docs/assumptions.md A13-A16).
+default_state: bauchi
+zones: [North West, North East, North Central, South West, South East, South South]
+states:
+  - {code: kano, name: Kano, zone: North West, grid3_facility_state: Kano, grid3_boundary_state: Kano, grid3_code: KN,
+     lga_aliases: {garummallam: garunmalam}, sim: {seed_offset: 1, season: sudan_sahel, report_range: [0.70, 0.93], timely_range: [0.72, 0.92], malaria_burden: 1.10, base_opd_median: 420}}
+  - {code: kaduna, name: Kaduna, zone: North West, grid3_facility_state: Kaduna, grid3_boundary_state: Kaduna, grid3_code: KD,
+     lga_aliases: {}, sim: {seed_offset: 2, season: guinea_savanna, report_range: [0.78, 0.96], lmis_range: [0.74, 0.96], malaria_burden: 1.00, base_opd_median: 380}}
+  - {code: bauchi, name: Bauchi, zone: North East, grid3_facility_state: Bauchi, grid3_boundary_state: Bauchi, grid3_code: BA,
+     lga_aliases: {damban: dambam}, sim: {seed_offset: 0}}
+  - {code: adamawa, name: Adamawa, zone: North East, grid3_facility_state: Adamawa, grid3_boundary_state: Adamawa, grid3_code: AD,
+     lga_aliases: {}, sim: {seed_offset: 3, season: guinea_savanna, report_range: [0.66, 0.90], timely_range: [0.68, 0.90], supply_range: [0.80, 0.95], malaria_burden: 1.05, base_opd_median: 300}}
+  - {code: fct, name: FCT (Abuja), zone: North Central, grid3_facility_state: "FCT, Abuja", grid3_boundary_state: Fct, grid3_code: FC,
+     lga_aliases: {}, sim: {seed_offset: 4, season: guinea_savanna, report_range: [0.84, 0.97], timely_range: [0.82, 0.96], lmis_range: [0.80, 0.97], supply_range: [0.88, 0.98], malaria_burden: 0.70, base_opd_median: 450}}
+  - {code: niger, name: Niger, zone: North Central, grid3_facility_state: Niger, grid3_boundary_state: Niger, grid3_code: NI,
+     lga_aliases: {}, sim: {seed_offset: 5, season: guinea_savanna, report_range: [0.70, 0.92], lmis_range: [0.66, 0.92], supply_range: [0.82, 0.96], malaria_burden: 1.10, base_opd_median: 300}}
+  - {code: ogun, name: Ogun, zone: South West, grid3_facility_state: Ogun, grid3_boundary_state: Ogun, grid3_code: OG,
+     lga_aliases: {}, sim: {seed_offset: 6, season: forest_south, report_range: [0.80, 0.96], timely_range: [0.78, 0.95], malaria_burden: 0.75, base_opd_median: 320}}
+  - {code: oyo, name: Oyo, zone: South West, grid3_facility_state: Oyo, grid3_boundary_state: Oyo, grid3_code: OY,
+     lga_aliases: {}, sim: {seed_offset: 7, season: forest_south, report_range: [0.76, 0.95], malaria_burden: 0.80, base_opd_median: 330}}
+  - {code: enugu, name: Enugu, zone: South East, grid3_facility_state: Enugu, grid3_boundary_state: Enugu, grid3_code: EN,
+     lga_aliases: {}, sim: {seed_offset: 8, season: forest_south, report_range: [0.80, 0.96], lmis_range: [0.76, 0.96], malaria_burden: 0.80, base_opd_median: 300}}
+  - {code: abia, name: Abia, zone: South East, grid3_facility_state: Abia, grid3_boundary_state: Abia, grid3_code: AB,
+     lga_aliases: {}, sim: {seed_offset: 9, season: forest_south, report_range: [0.72, 0.93], timely_range: [0.70, 0.92], malaria_burden: 0.80, base_opd_median: 280}}
+  - {code: delta, name: Delta, zone: South South, grid3_facility_state: Delta, grid3_boundary_state: Delta, grid3_code: DE,
+     lga_aliases: {}, sim: {seed_offset: 10, season: forest_south, report_range: [0.74, 0.94], supply_range: [0.82, 0.96], malaria_burden: 0.85, base_opd_median: 300}}
+  - {code: bayelsa, name: Bayelsa, zone: South South, grid3_facility_state: Bayelsa, grid3_boundary_state: Bayelsa, grid3_code: BY,
+     lga_aliases: {}, sim: {seed_offset: 11, season: forest_south, report_range: [0.64, 0.90], timely_range: [0.66, 0.90], lmis_range: [0.62, 0.90], supply_range: [0.78, 0.94], malaria_burden: 0.90, base_opd_median: 260}}
+
+geography:
+  # DESIGN: a facility outside its own LGA polygon but within this distance of it
+  # is "Near boundary" (boundary precision; kept on the map). Further away it is
+  # "Location unverified": kept in every queue, not drawn on the map.
+  near_boundary_km: 5
 
 calendar:
   first_period: "2023-10"          # first simulated month
@@ -66,3 +108,37 @@ simulator:
   scenario_share_silent_before: 0.01   # reliable facilities that go silent before a stockout
   # A3 (labelled assumption): strain raises the chance of a missed report.
   strain_silence_multiplier: 1.5
+  # Per-state parameters. These defaults are the original Bauchi calibration
+  # (A11, [14]); each state in `states` overrides some of them. Every override is
+  # a DESIGN ASSUMPTION unless docs/assumptions.md cites a published figure.
+  #   *_range       LGA-level probability range (monthly report, on-time, NHLMIS report, LGA delivery)
+  #   base_opd_median  median monthly OPD attendance per PHC
+  #   malaria_burden   multiplier on each facility's malaria share of OPD
+  #   season           malaria seasonality profile (below)
+  state_defaults:
+    seed_offset: 0
+    report_range: [0.74, 0.95]
+    timely_range: [0.75, 0.95]
+    lmis_range: [0.70, 0.95]
+    supply_range: [0.84, 0.97]
+    base_opd_median: 350
+    malaria_burden: 1.0
+    season: guinea_savanna
+  # Malaria seasonality, Jan..Dec (A14). guinea_savanna is the original Bauchi profile.
+  seasonality:
+    sudan_sahel:    [0.45, 0.40, 0.40, 0.45, 0.55, 0.75, 1.10, 1.70, 2.00, 1.75, 1.05, 0.60]
+    guinea_savanna: [0.55, 0.50, 0.50, 0.55, 0.70, 0.90, 1.20, 1.60, 1.80, 1.60, 1.00, 0.70]
+    forest_south:   [0.75, 0.75, 0.85, 1.00, 1.15, 1.25, 1.30, 1.25, 1.25, 1.15, 0.95, 0.80]
+
+national:
+  trend_months: 6                  # months of history in the state brief trend
+  top_lgas_in_brief: 3
+  # Status label shown in text on every state card (never colour alone). It mirrors
+  # the Risk x Confidence matrix at state level:
+  #   act_and_verify  both thresholds reached     action_load   ACT NOW share only
+  #   evidence_gap    verification share only     watch         neither (below alert thresholds)
+  # DESIGN thresholds, set near the middle of the simulated state range so the label
+  # separates states; with real data a state would set them with its M&E team.
+  status:
+    act_now_share_high: 0.17       # >= this share of PHCs in ACT NOW -> high action load
+    verification_share_high: 0.36  # >= this share in Data Verification -> evidence gap

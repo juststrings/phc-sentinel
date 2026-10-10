@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from ..config import EVAL_DIR, EXPORTS_DIR, mapping, settings
+from ..config import StatePaths, mapping, settings
 from ..facility.grid3 import synthetic_uid
 from .. import periods as P
 from .truth import COMMODITIES, Truth
@@ -37,7 +37,7 @@ def _submission_dates(period_end: pd.Series, on_time: np.ndarray, deadline_days:
     return pd.to_datetime(period_end) + pd.to_timedelta(offs, unit="D") + pd.to_timedelta(hours, unit="h")
 
 
-def simulate_reporting(truth: Truth, dim: pd.DataFrame, rng: np.random.Generator) -> dict:
+def simulate_reporting(truth: Truth, dim: pd.DataFrame, rng: np.random.Generator, state_name: str) -> dict:
     s = settings()
     rep = s["reporting"]
     mult = s["simulator"]["strain_silence_multiplier"]
@@ -217,9 +217,9 @@ def simulate_reporting(truth: Truth, dim: pd.DataFrame, rng: np.random.Generator
     # ---- Org unit metadata -----------------------------------------------------
     lgas = dim[["lga_id", "lga"]].drop_duplicates()
     lga_uid = {r.lga: synthetic_uid("lga:" + r.lga) for r in lgas.itertuples()}
-    state_uid = synthetic_uid("state:" + s["state"])
+    state_uid = synthetic_uid("state:" + state_name)
     orgunits = pd.concat([
-        pd.DataFrame([{"id": state_uid, "name": f"{s['state']} State", "code": "", "level": 2, "parent": "", "openingDate": "1990-01-01"}]),
+        pd.DataFrame([{"id": state_uid, "name": f"{state_name} State", "code": "", "level": 2, "parent": "", "openingDate": "1990-01-01"}]),
         pd.DataFrame({"id": lgas["lga"].map(lga_uid), "name": lgas["lga"] + " Local Government Area",
                       "code": lgas["lga_id"], "level": 3, "parent": state_uid, "openingDate": "1990-01-01"}),
         pd.DataFrame({"id": dim["dhis2_orgunit_uid"], "name": dim["name"], "code": dim["facility_id"], "level": 5,
@@ -266,9 +266,9 @@ def realism_report(truth: Truth, out: dict) -> dict:
     return rep
 
 
-def write_outputs(truth: Truth, out: dict) -> dict:
-    EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    EVAL_DIR.mkdir(parents=True, exist_ok=True)
+def write_outputs(truth: Truth, out: dict, paths: StatePaths) -> dict:
+    paths.ensure()
+    EXPORTS_DIR, EVAL_DIR = paths.exports, paths.eval
     out["datavalues"].to_csv(EXPORTS_DIR / "dhis2_datavalues.csv.gz", index=False)
     out["registrations"].to_csv(EXPORTS_DIR / "dhis2_complete_registrations.csv", index=False)
     out["orgunits"].to_csv(EXPORTS_DIR / "dhis2_orgunits.csv", index=False)
@@ -278,7 +278,10 @@ def write_outputs(truth: Truth, out: dict) -> dict:
     for c in ("start_period", "target_period", "stockout_period"):
         if c in events:
             events[c] = events[c].map(lambda p: P.dhis2_period(p) if isinstance(p, pd.Period) else None)
+    # The answer key carries the state code so state keys can be combined nationally.
+    events.insert(0, "state_code", paths.code)
     events.to_csv(EVAL_DIR / "answer_key_scenarios.csv", index=False)
+    out["faults"].insert(0, "state_code", paths.code)
     out["faults"].to_csv(EVAL_DIR / "answer_key_faults.csv", index=False)
     out["reporting_truth"].to_csv(EVAL_DIR / "reporting_truth.csv", index=False)
     out["lmis_truth"].to_csv(EVAL_DIR / "nhlmis_reporting_truth.csv", index=False)
