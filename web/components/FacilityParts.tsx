@@ -100,16 +100,18 @@ export function VaccineCard({ ex }: { ex: any }) {
 }
 
 /** Service demand against its seasonal baseline. */
-export function DemandCard({ ex, services, capped }: { ex: any; services: any[]; capped: boolean }) {
+export function DemandCard({ ex, services, capped, month }: { ex: any; services: any[]; capped: boolean; month: string }) {
   const dom = domainOf(ex, "service_pressure");
   return (
     <section className={card} aria-label="Service demand">
       <CardHead title="Service demand" dom={dom} />
       <NotCredible dom={dom} />
-      <ServiceChart rows={services} indicator="confirmed_malaria" title="Confirmed malaria vs seasonal baseline" />
+      <ServiceChart rows={services} indicator="confirmed_malaria" title="Confirmed malaria vs seasonal baseline, last 18 months" month={month} />
       {dom?.evidence?.length > 0 && (
         <ul className="mt-2 list-disc space-y-1 pl-4 text-[13px] text-ink-2">
-          {dom.evidence.map((e: any, i: number) => <li key={i}>{e.text}</li>)}
+          {/* Evidence text already names its indicator. The charted one (confirmed malaria) comes first. */}
+          {[...dom.evidence].sort((a: any, b: any) => Number(b.indicator === "confirmed_malaria") - Number(a.indicator === "confirmed_malaria"))
+            .map((e: any, i: number) => <li key={i}>{e.text}</li>)}
         </ul>
       )}
       {capped && <p className="mt-2 text-[12px] italic text-ink-3">Demand alone is capped at Watch.</p>}

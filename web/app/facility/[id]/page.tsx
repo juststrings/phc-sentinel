@@ -100,7 +100,7 @@ export default async function FacilityDetail({ params, searchParams }: {
       <div className="grid gap-4 lg:grid-cols-3">
         <MalariaCard ex={ex} trends={d.trends.commodity} cfg={cfg} />
         <VaccineCard ex={ex} />
-        <DemandCard ex={ex} services={d.trends.services} capped={!!s.pressure_capped} />
+        <DemandCard ex={ex} services={d.trends.services} capped={!!s.pressure_capped} month={month} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

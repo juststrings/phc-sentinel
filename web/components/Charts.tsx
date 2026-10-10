@@ -49,19 +49,29 @@ export function QueueTrend({ data }: { data: any[] }) {
   );
 }
 
-/** One indicator: reported value vs seasonal baseline. One axis, two series. */
-export function ServiceChart({ rows, indicator, title }: { rows: any[]; indicator: string; title: string }) {
-  const data = rows.filter((r) => r.indicator === indicator).map((r) => ({
-    m: r.analysis_month, value: r.value, expected: r.expected, z: r.z,
-  }));
-  if (!data.length) return <div className="empty">No history</div>;
+const WINDOW = 18;
+
+/** The WINDOW calendar months ending at `end` (YYYY-MM), oldest first. */
+function monthsEndingAt(end: string, n: number): string[] {
+  const [y, m] = end.split("-").map(Number);
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(y, m - 1 - (n - 1 - i), 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+}
+
+/** One indicator: reported value vs seasonal baseline, for the last 18 months ending at the analysis month. */
+export function ServiceChart({ rows, indicator, title, month }: { rows: any[]; indicator: string; title: string; month: string }) {
+  const by = new Map(rows.filter((r) => r.indicator === indicator).map((r) => [r.analysis_month, r]));
+  const data = monthsEndingAt(month, WINDOW).map((m) => ({ m, value: by.get(m)?.value ?? null, expected: by.get(m)?.expected ?? null }));
+  if (!data.some((d) => d.value != null || d.expected != null)) return <div className="py-6 text-center text-[13px] text-ink-3">No history</div>;
   return (
     <div>
-      <h3>{title}</h3>
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={data} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+      <h4 className="mb-2 text-[13px] font-medium text-ink-2">{title}</h4>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={data} margin={{ top: 8, right: 28, left: -8, bottom: 0 }}>
           <CartesianGrid {...grid} />
-          <XAxis dataKey="m" tickFormatter={short} {...axis} interval={3} />
+          <XAxis dataKey="m" tickFormatter={short} {...axis} ticks={data.filter((_, i) => (data.length - 1 - i) % 3 === 0).map((d) => d.m)} interval={0} padding={{ left: 8, right: 8 }} />
           <YAxis {...axis} />
           <Tooltip {...tip} labelFormatter={short}
             formatter={(v: any, n: any) => [v == null ? "not reported" : Math.round(v).toLocaleString(), n]} />
