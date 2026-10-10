@@ -10,6 +10,7 @@ from sqlalchemy import text
 
 from ..config import mapping, settings
 from ..db import engine
+from ..engines.dqr import PRODUCT_LABEL, RULES
 
 app = FastAPI(title="PHC Sentinel API", version="0.1.0",
               description="Operational risk x data confidence for Bauchi State PHCs. Operational data are SIMULATED.")
@@ -68,6 +69,94 @@ def meta_settings():
     return {"settings": settings(), "mapping": mapping()}
 
 
+@app.get("/meta/state")
+def meta_state():
+    return one("""SELECT (SELECT min(state) FROM dim_lga) AS state, (SELECT count(*) FROM dim_lga) AS lgas,
+                         (SELECT count(*) FROM dim_facility) AS facilities""")
+
+
+@app.get("/meta/rules")
+def meta_rules():
+    """The data quality rules, straight from the engine's rule table."""
+    seen: dict[str, list[str]] = {}
+    for r in q("SELECT DISTINCT rule_id, severity FROM fact_quality_flags"):
+        seen.setdefault(r["rule_id"], []).append(r["severity"])
+    return {"rules": [{"rule_id": k, "family": f, "label": lbl, "severities": sorted(seen.get(k, []))}
+                      for k, (f, lbl) in RULES.items()]}
+
+
+@app.get("/meta/coords")
+def meta_coords():
+    """Facilities with questionable coordinates. 'outside_state' is the D8 count (outside every Bauchi LGA
+    polygon); 'outside_lga' is coord_status = 'invalid' (more than 5 km outside the facility's own LGA)."""
+    r = one("""SELECT count(*) AS facilities,
+                      sum((coord_status = 'invalid')::int) AS outside_lga,
+                      sum((coord_status = 'near_boundary')::int) AS near_boundary,
+                      sum((NOT ST_Intersects(geom, (SELECT ST_Union(geom) FROM dim_lga)))::int) AS outside_state
+               FROM dim_facility""")
+    return r
+
+
+@app.get("/state/insights")
+def state_insights(month: str | None = MONTH):
+    """Facts for the 'This week' panel, all computed from the analysis tables."""
+    m = resolve_month(month)
+    most_act = one("""SELECT lga_id, lga, act_now, action FROM mart_lga_month WHERE analysis_month = :m
+                      ORDER BY act_now DESC, action DESC, lga LIMIT 1""", m=m)
+    lowest_ontime = one("""SELECT lga_id, lga, on_time_rate, facilities FROM mart_lga_month
+                           WHERE analysis_month = :m ORDER BY on_time_rate ASC, lga LIMIT 1""", m=m)
+    min_months = settings()["commodity"]["min_months"]
+    shortage = q("""SELECT commodity_code, count(*) AS n FROM mart_commodity_month
+                    WHERE analysis_month = :m AND has_record AND NOT stale_flag AND amc > 0
+                      AND physical_stock / amc < :mn GROUP BY 1 ORDER BY n DESC""", m=m, mn=min_months)
+    for r in shortage:
+        r["product"] = PRODUCT_LABEL.get(r["commodity_code"], r["commodity_code"])
+    return {"month": m, "most_act_now_lga": most_act, "lowest_on_time_lga": lowest_ontime,
+            "shortage_min_months": min_months, "shortage_by_product": shortage}
+
+
+@app.get("/facilities")
+def facilities(month: str | None = MONTH, q_: str | None = Query(None, alias="q"), lga_id: str | None = None,
+               queue: str | None = None, area: str | None = None, risk: str | None = None,
+               confidence: str | None = None, stale: bool = False, coords: bool = False,
+               sort: str = "name", dir: str = Query("asc", pattern="^(asc|desc)$"),
+               page: int = Query(1, ge=1), page_size: int = Query(25, ge=1, le=100)):
+    """Directory of every PHC with its status for the month. Filters and sort are whitelisted."""
+    m = resolve_month(month)
+    sort_cols = {"name": "f.name", "lga": "f.lga", "queue": "fm.queue", "risk": "fm.risk_n",
+                 "confidence": "fm.conf_n", "last_dhis2": "l.last_dhis2", "last_nhlmis": "fm.nhlmis_age_days",
+                 "rank": "fm.rank_state"}
+    if sort not in sort_cols:
+        raise HTTPException(422, f"sort must be one of {sorted(sort_cols)}")
+    where = ["fm.analysis_month = :m"]
+    p: dict = {"m": m}
+    if q_:
+        where.append("(f.name ILIKE :q OR f.ward ILIKE :q OR f.facility_id ILIKE :q)")
+        p["q"] = f"%{q_}%"
+    for col, val in (("f.lga_id", lga_id), ("fm.queue", queue), ("fm.top_domain", area),
+                     ("fm.operational_risk", risk.upper() if risk else None),
+                     ("fm.data_confidence", confidence.upper() if confidence else None)):
+        if val:
+            key = col.replace(".", "_")
+            where.append(f"{col} = :{key}")
+            p[key] = val
+    if stale:
+        where.append("fm.nhlmis_stale")
+    if coords:
+        where.append("f.coord_status = 'invalid'")
+    base = f"""FROM dim_facility f JOIN mart_facility_month fm ON fm.facility_id = f.facility_id
+               LEFT JOIN LATERAL (SELECT max(h.analysis_month) AS last_dhis2 FROM mart_facility_month h
+                                  WHERE h.facility_id = f.facility_id AND h.analysis_month <= :m AND h.report_received) l ON true
+               WHERE {' AND '.join(where)}"""
+    total = one(f"SELECT count(*) AS n {base}", **p)["n"]
+    rows = q(f"""SELECT f.facility_id, f.name, f.ward, f.lga_id, f.lga, f.coord_status, fm.queue, fm.tag,
+                        fm.operational_risk, fm.data_confidence, fm.top_domain, fm.nhlmis_age_days, fm.nhlmis_stale,
+                        fm.report_received, l.last_dhis2
+                 {base} ORDER BY {sort_cols[sort]} {dir} NULLS LAST, f.facility_id
+                 LIMIT :lim OFFSET :off""", lim=page_size, off=(page - 1) * page_size, **p)
+    return {"month": m, "total": total, "page": page, "page_size": page_size, "facilities": rows}
+
+
 @app.get("/state/summary")
 def state_summary(month: str | None = MONTH):
     m = resolve_month(month)
@@ -93,8 +182,15 @@ def state_summary(month: str | None = MONTH):
     conf = q("SELECT data_confidence, count(*) n FROM mart_facility_month WHERE analysis_month = :m GROUP BY 1", m=m)
     domains = q("""SELECT top_domain, count(*) n FROM mart_facility_month
                    WHERE analysis_month = :m AND queue = 'RESOURCE_ACTION' GROUP BY 1""", m=m)
-    trend = q("""SELECT analysis_month, sum(action) action, sum(verification) verification, sum(monitor) monitor
+    trend = q("""SELECT analysis_month, sum(action) action, sum(act_now) act_now, sum(verify_then_act) verify_then_act,
+                        sum(verification) verification, sum(monitor) monitor
                  FROM mart_lga_month GROUP BY 1 ORDER BY 1""")
+    # Warm-up: until enough history exists no facility can be classed Monitor, so the leading months
+    # are almost entirely Data Verification. Flag them so the UI can start the chart after them.
+    warm = True
+    for t in trend:
+        warm = warm and t["monitor"] == 0
+        t["warmup"] = warm
     return {"month": m, "kpis": kpi, "matrix": matrix, "risk": risk, "confidence": conf,
             "action_by_domain": domains, "lgas": lgas, "trend": trend}
 
@@ -143,8 +239,12 @@ def lga_queue(lga_id: str, month: str | None = MONTH):
     rows = q("""SELECT q.facility_id, f.name, f.ward, q.queue, q.tag, q.rank_lga, q.rank_state, q.operational_risk,
                        q.data_confidence, q.top_domain, q.evidence_summary, q.next_action,
                        q.consecutive_missing, q.nhlmis_age_days, fm.late_days, fm.report_received,
-                       fm.days_since_deadline_missed, fm.reliable_history, fm.silent_flag
+                       fm.days_since_deadline_missed, fm.reliable_history, fm.silent_flag, fm.submission_date,
+                       fm.overdue_days, lr.last_report_month
                 FROM mart_queue q JOIN dim_facility f USING (facility_id)
+                LEFT JOIN LATERAL (SELECT max(h.analysis_month) AS last_report_month FROM mart_facility_month h
+                                   WHERE h.facility_id = q.facility_id AND h.analysis_month <= q.analysis_month
+                                     AND h.report_received) lr ON true
                 JOIN mart_facility_month fm ON fm.facility_id = q.facility_id AND fm.analysis_month = q.analysis_month
                 WHERE q.analysis_month = :m AND q.lga_id = :l ORDER BY q.queue, q.rank_lga""", m=m, l=lga_id)
     by = {"RESOURCE_ACTION": [], "DATA_VERIFICATION": [], "MONITOR": []}
@@ -165,6 +265,8 @@ def facility(facility_id: str, month: str | None = MONTH):
     status = one("""SELECT fm.*, q.explanation, q.rank_lga FROM mart_facility_month fm
                     JOIN mart_queue q USING (facility_id, analysis_month)
                     WHERE fm.facility_id = :f AND fm.analysis_month = :m""", f=facility_id, m=m)
+    if status is None:
+        raise HTTPException(404, f"no analysis for facility {facility_id} in {m}")
     explanation = status.pop("explanation")
     # Trends up to the analysis month: service volumes vs baseline, commodity position, reporting history.
     services = q("""SELECT analysis_month, indicator, value, expected, z, seasonal FROM mart_service_baseline

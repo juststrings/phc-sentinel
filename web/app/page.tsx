@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { QueueTrend } from "@/components/Charts";
 import LgaMap from "@/components/LgaMap";
-import MonthPicker from "@/components/MonthPicker";
 import { QueueTag } from "@/components/Tags";
 import { DOMAIN_LABEL, api, monthLabel, pct } from "@/lib/api";
 
@@ -23,7 +22,6 @@ export default async function StateOverview({ searchParams }: { searchParams: Pr
           <h1>Where to act, where to verify</h1>
           <div className="secondary">{k.facilities.toLocaleString()} public PHCs across {s.lgas.length} LGAs</div>
         </div>
-        <MonthPicker months={meta.months} value={month} />
       </div>
 
       <div className="grid g-kpi" style={{ marginBottom: 16 }}>

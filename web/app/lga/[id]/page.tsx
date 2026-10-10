@@ -1,6 +1,5 @@
 import Link from "next/link";
 import LgaMap from "@/components/LgaMap";
-import MonthPicker from "@/components/MonthPicker";
 import { ConfBadge, QueueTag } from "@/components/Tags";
 import { DOMAIN_LABEL, api, monthLabel, pct } from "@/lib/api";
 
@@ -44,7 +43,6 @@ export default async function LgaQueues({ params, searchParams }: {
             ranked #{l.lga_rank} of 20 LGAs
           </div>
         </div>
-        <MonthPicker months={meta.months} value={month} />
       </div>
 
       <div className="grid g-kpi" style={{ marginBottom: 16 }}>

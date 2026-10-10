@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { CommodityChart, ServiceChart } from "@/components/Charts";
-import MonthPicker from "@/components/MonthPicker";
 import { ConfBadge, QueueTag, SevBadge } from "@/components/Tags";
 import { QUEUE_LABEL, api, monthLabel } from "@/lib/api";
 
@@ -31,7 +30,6 @@ export default async function FacilityExplanation({ params, searchParams }: {
             {f.coord_status === "invalid" && " · coordinates flagged invalid in GRID3"}
           </div>
         </div>
-        <MonthPicker months={meta.months} value={month} />
       </div>
 
       <div className="grid g-half" style={{ marginBottom: 16 }}>

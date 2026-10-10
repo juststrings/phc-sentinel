@@ -14,11 +14,12 @@ export const QUEUE_LABEL: Record<string, string> = {
   MONITOR: "Monitor",
 };
 
+// Transitional: legacy pages only. New code uses lib/tokens.ts.
 export const TAG_STYLE: Record<string, { color: string; label: string; icon: string }> = {
-  "ACT NOW": { color: "var(--st-critical)", label: "Act now", icon: "▲" },
-  "VERIFY THEN ACT": { color: "var(--st-serious)", label: "Verify then act", icon: "◆" },
-  "DO NOT ASSUME SAFE": { color: "var(--st-warning)", label: "Do not assume safe", icon: "?" },
-  MONITOR: { color: "var(--st-good)", label: "Monitor", icon: "●" },
+  "ACT NOW": { color: "var(--q-act)", label: "Act now", icon: "▲" },
+  "VERIFY THEN ACT": { color: "var(--q-verify)", label: "Verify then act", icon: "◆" },
+  "DO NOT ASSUME SAFE": { color: "var(--q-dnas)", label: "Do not assume safe", icon: "◪" },
+  MONITOR: { color: "var(--q-monitor)", label: "Monitor", icon: "●" },
 };
 
 export const SEV_COLOR: Record<string, string> = {
