@@ -45,18 +45,25 @@ export default function Sidebar({ states, zones }: { states: StateInfo[]; zones:
   const code = useStateCode();
   const q = month ? `?month=${month}` : "";
   const base = code ? `/state/${code}` : null;
-  const nav = [
-    { href: "/national", label: "National", icon: "home", on: path === "/national" },
-    { href: "/states", label: "States", icon: "building", on: path === "/states" },
-    ...(base ? [
-      { href: base, label: "State Overview", icon: "home", on: path === base },
-      { href: `${base}/lga`, label: "LGA Queues", icon: "list", on: path.startsWith(`${base}/lga`) },
-    ] : []),
-    base
-      ? { href: `${base}/facilities`, label: "Facilities", icon: "building", on: path.startsWith(`${base}/facilit`) }
-      : { href: "/facilities", label: "Facilities", icon: "building", on: path.startsWith("/facilities") },
-    { href: "/about", label: "Method", icon: "rule", on: path === "/about" },
-  ];
+  const stateName = code ? states.find((x) => x.code === code)?.name ?? code : null;
+  const top = (href: string, label: string, icon: string, on: boolean) => (
+    <Link
+      key={href} href={`${href}${q}`} aria-current={on ? "page" : undefined}
+      className={`flex items-center gap-2 whitespace-nowrap rounded px-3 py-2 text-[13px] font-medium ${on ? "bg-[var(--brand)] text-[var(--canvas)]" : "text-ink-2 hover:bg-muted"}`}
+    >
+      <Icon name={icon} />
+      {label}
+    </Link>
+  );
+  // The selected state's pages: a sub-menu of "States", indented under a guide line.
+  const sub = (href: string, label: string, on: boolean) => (
+    <Link
+      key={href} href={`${href}${q}`} aria-current={on ? "page" : undefined}
+      className={`flex items-center whitespace-nowrap rounded px-3 py-1.5 text-[13px] ${on ? "bg-muted font-semibold text-ink" : "text-ink-2 hover:bg-muted"}`}
+    >
+      {label}
+    </Link>
+  );
   return (
     <aside className="shell-chrome border-b border-line bg-card md:sticky md:top-[var(--banner-h,32px)] md:h-[calc(100vh-var(--banner-h,32px))] md:w-60 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r">
       <Link href="/" className="block px-4 py-3 md:px-5 md:py-5" aria-label="PHC Sentinel home">
@@ -65,19 +72,26 @@ export default function Sidebar({ states, zones }: { states: StateInfo[]; zones:
       </Link>
       <ScopeSwitcher states={states} zones={zones} />
       <nav className="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:px-3" aria-label="Primary">
-        {nav.map((n) => (
-          <Link
-            key={n.href}
-            href={`${n.href}${q}`}
-            aria-current={n.on ? "page" : undefined}
-            className={`flex items-center gap-2 whitespace-nowrap rounded px-3 py-2 text-[13px] font-medium ${
-              n.on ? "bg-[var(--brand)] text-[var(--canvas)]" : "text-ink-2 hover:bg-muted"
-            }`}
-          >
-            <Icon name={n.icon} />
-            {n.label}
-          </Link>
-        ))}
+        {top("/national", "National", "home", path === "/national")}
+        {top("/states", "States", "building", path === "/states")}
+        {base && stateName && (
+          <div className="ml-5 hidden border-l border-line pl-2 md:block" role="group" aria-label={`${stateName} pages`}>
+            <div className="th px-3 pb-1 pt-1">{stateName}</div>
+            {sub(base, "Overview", path === base)}
+            {sub(`${base}/lga`, "LGA queues", path.startsWith(`${base}/lga`))}
+            {sub(`${base}/facilities`, "Facilities", path.startsWith(`${base}/facilit`))}
+          </div>
+        )}
+        {base && stateName && (
+          // Narrow screens: the nav is a single row, so the state pages sit inline after States
+          <div className="flex gap-1 md:hidden" role="group" aria-label={`${stateName} pages`}>
+            {sub(base, `${stateName}: overview`, path === base)}
+            {sub(`${base}/lga`, "LGA queues", path.startsWith(`${base}/lga`))}
+            {sub(`${base}/facilities`, "Facilities", path.startsWith(`${base}/facilit`))}
+          </div>
+        )}
+        {top("/facilities", "Facilities", "list", path === "/facilities")}
+        {top("/about", "Method", "rule", path === "/about")}
         <Link href="/national/briefing" className="hidden items-center gap-2 rounded px-3 py-2 text-[13px] text-ink-3 hover:bg-muted md:flex">
           <Icon name="arrow" /> Briefing mode
         </Link>
