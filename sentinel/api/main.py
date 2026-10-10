@@ -12,7 +12,7 @@ from ..config import mapping, settings
 from ..db import engine
 from ..engines.dqr import PRODUCT_LABEL, RULES
 from .explain import corroborated_by
-from .thresholds import thresholds
+from .thresholds import rule_severities, thresholds
 
 app = FastAPI(title="PHC Sentinel API", version="0.1.0",
               description="Operational risk x data confidence for Bauchi State PHCs. Operational data are SIMULATED.")
@@ -86,10 +86,8 @@ def meta_thresholds():
 @app.get("/meta/rules")
 def meta_rules():
     """The data quality rules, straight from the engine's rule table."""
-    seen: dict[str, list[str]] = {}
-    for r in q("SELECT DISTINCT rule_id, severity FROM fact_quality_flags"):
-        seen.setdefault(r["rule_id"], []).append(r["severity"])
-    return {"rules": [{"rule_id": k, "family": f, "label": lbl, "severities": sorted(seen.get(k, []))}
+    sev = rule_severities()
+    return {"rules": [{"rule_id": k, "family": f, "label": lbl, "severities": sev.get(k, [])}
                       for k, (f, lbl) in RULES.items()]}
 
 

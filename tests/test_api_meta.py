@@ -87,3 +87,11 @@ def test_corroborated_by_names_the_worst_credible_other_domain():
     assert corroborated_by(ex, "service_pressure", "HIGH") == "ACT child at 1.8 months (Watch)"
     assert corroborated_by(ex, "service_pressure", "WATCH") is None        # only High or worse
     assert corroborated_by(ex, "malaria_commodity", "HIGH") is None        # only pressure-driven facilities
+
+
+def test_every_rule_has_a_severity_from_the_engine_source():
+    from sentinel.api.thresholds import rule_severities
+    sev = rule_severities()
+    assert set(sev) == set(RULES) and all(sev.values())
+    assert sev["COH_OPD_ZERO"] == ["major"] and sev["COH_SESSIONS"] == ["minor"]
+    assert sev["COMP_MISSING_FIELDS"] == ["major", "minor"]
