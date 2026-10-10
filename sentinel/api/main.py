@@ -212,7 +212,7 @@ def state_top(month: str | None = MONTH, limit: int = Query(10, le=100)):
 def geo_lgas(month: str | None = MONTH):
     m = resolve_month(month)
     rows = q("""SELECT l.lga_id, l.lga, ST_AsGeoJSON(ST_SimplifyPreserveTopology(l.geom, 0.002), 5) AS g,
-                       s.facilities, s.action, s.verification, s.monitor, s.needs_attention, s.lga_rank,
+                       s.facilities, s.action, s.act_now, s.verify_then_act, s.verification, s.monitor, s.needs_attention, s.lga_rank,
                        s.reporting_completeness
                 FROM dim_lga l LEFT JOIN mart_lga_month s ON s.lga_id = l.lga_id AND s.analysis_month = :m""", m=m)
     return {"type": "FeatureCollection", "features": [

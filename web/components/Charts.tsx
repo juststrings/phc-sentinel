@@ -16,21 +16,36 @@ const short = (m: string) => {
   return new Date(y, mo - 1, 1).toLocaleString("en-GB", { month: "short", year: "2-digit" });
 };
 
-/** Queue sizes over time, stacked (status colours, 2px gaps via stroke). */
+/** Queue sizes over time, stacked in the four queue tokens. Months before `warmup` ends are not passed in. */
 export function QueueTrend({ data }: { data: any[] }) {
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }} barCategoryGap={2}>
-        <CartesianGrid {...grid} />
-        <XAxis dataKey="analysis_month" tickFormatter={short} {...axis} interval={2} />
-        <YAxis {...axis} allowDecimals={false} />
-        <Tooltip {...tip} labelFormatter={short} />
-        <Legend {...legend} />
-        <Bar isAnimationActive={false} dataKey="action" name="Resource action" stackId="q" fill="var(--st-critical)" stroke="var(--surface-1)" strokeWidth={1} />
-        <Bar isAnimationActive={false} dataKey="verification" name="Data verification" stackId="q" fill="var(--st-warning)" stroke="var(--surface-1)" strokeWidth={1} />
-        <Bar isAnimationActive={false} dataKey="monitor" name="Monitor" stackId="q" fill="var(--text-muted)" fillOpacity={0.45} stroke="var(--surface-1)" strokeWidth={1} radius={[4, 4, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
+    <div>
+      {/* Hatch pattern for Do not assume safe, so it never reads as a plain colour. */}
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+        <defs>
+          <pattern id="dnas-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" fill="var(--q-dnas)" />
+            <rect width="2" height="6" fill="rgba(255,255,255,0.55)" />
+          </pattern>
+        </defs>
+      </svg>
+      <ResponsiveContainer width="100%" height={240}>
+        <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }} barCategoryGap={2}>
+          <CartesianGrid stroke="var(--line)" vertical={false} />
+          <XAxis dataKey="analysis_month" tickFormatter={short} stroke="var(--line)" tick={{ fill: "var(--ink-3)", fontSize: 11 }} tickLine={false} interval={2} />
+          <YAxis stroke="var(--line)" tick={{ fill: "var(--ink-3)", fontSize: 11 }} tickLine={false} allowDecimals={false} />
+          <Tooltip
+            contentStyle={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, color: "var(--ink)" }}
+            labelStyle={{ color: "var(--ink-2)", fontWeight: 600 }} cursor={{ fill: "var(--muted-bg)" }} labelFormatter={short}
+          />
+          <Legend wrapperStyle={{ fontSize: 12, color: "var(--ink-2)" }} iconSize={10} />
+          <Bar isAnimationActive={false} dataKey="act_now" name="Act now" stackId="q" fill="var(--q-act)" />
+          <Bar isAnimationActive={false} dataKey="verify_then_act" name="Verify then act" stackId="q" fill="var(--q-verify)" />
+          <Bar isAnimationActive={false} dataKey="verification" name="Do not assume safe" stackId="q" fill="url(#dnas-hatch)" />
+          <Bar isAnimationActive={false} dataKey="monitor" name="Monitor" stackId="q" fill="var(--q-monitor)" radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

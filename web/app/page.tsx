@@ -1,147 +1,111 @@
 import Link from "next/link";
 import { QueueTrend } from "@/components/Charts";
+import Chip from "@/components/Chip";
+import DriverBars from "@/components/DriverBars";
+import InsightPanel from "@/components/InsightPanel";
 import LgaMap from "@/components/LgaMap";
-import { QueueTag } from "@/components/Tags";
-import { DOMAIN_LABEL, api, monthLabel, pct } from "@/lib/api";
+import LgaTable from "@/components/LgaTable";
+import QueueMatrix from "@/components/QueueMatrix";
+import { api, monthLabel, pct } from "@/lib/api";
+
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="card px-4 py-3">
+      <div className="th">{label}</div>
+      <div className="text-[24px] font-bold leading-8 tabular-nums text-ink">{value}</div>
+      {sub && <div className="text-[12px] text-ink-3">{sub}</div>}
+    </div>
+  );
+}
+
+function TopList({ title, rows, month }: { title: string; rows: any[]; month: string }) {
+  return (
+    <section className="card p-4">
+      <h2 className="mb-2 text-[16px] font-semibold text-ink">{title}</h2>
+      <ol>
+        {rows.map((r, i) => (
+          <li key={r.facility_id} className="flex items-start gap-3 border-b border-line py-2 last:border-0">
+            <span className="w-5 pt-0.5 text-[12px] text-ink-3 tabular-nums">{i + 1}</span>
+            <div className="min-w-0 flex-1">
+              <Link href={`/facility/${r.facility_id}?month=${month}`} className="text-[13px] font-medium hover:underline">{r.name}</Link>
+              <div className="text-[12px] text-ink-3">{r.lga} · {r.evidence_summary}</div>
+            </div>
+            <Chip kind="queue" tag={r.tag} />
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
 
 export default async function StateOverview({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
   const { month: m } = await searchParams;
   const meta = await api("/meta/months");
   const month = m ?? meta.latest;
-  const [s, top, lgaGeo, facGeo] = await Promise.all([
-    api("/state/summary", month), api("/state/top", month), api("/geo/lgas", month), api("/geo/facilities", month),
+  const idx = meta.months.indexOf(month);
+  const prevMonth = idx > 0 ? meta.months[idx - 1] : null;
+  const [s, prev, ins, top, lgaGeo, facGeo, coords, cfg] = await Promise.all([
+    api("/state/summary", month),
+    prevMonth ? api("/state/summary", prevMonth) : Promise.resolve(null),
+    api("/state/insights", month),
+    api("/state/top", month),
+    api("/geo/lgas", month),
+    api("/geo/facilities", month),
+    api("/meta/coords"),
+    api("/meta/settings"),
   ]);
   const k = s.kpis;
-  const cell = (risk: string, conf: string) => s.matrix.find((x: any) => x.risk === risk && x.confidence === conf)?.n ?? 0;
+  const trend = s.trend.filter((t: any) => !t.warmup);
+  const omitted = s.trend.length - trend.length;
 
   return (
-    <>
-      <div className="page-head">
-        <div>
-          <div className="crumbs">Bauchi State · {monthLabel(month)} analysis (as of 30 days after month end)</div>
-          <h1>Where to act, where to verify</h1>
-          <div className="secondary">{k.facilities.toLocaleString()} public PHCs across {s.lgas.length} LGAs</div>
-        </div>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-[24px] font-semibold leading-8 text-ink">State overview</h1>
+        <p className="text-[13px] text-ink-3">
+          {monthLabel(month)} analysis, as of {cfg.settings.calendar.analysis_lag_days} days after month end
+        </p>
       </div>
 
-      <div className="grid g-kpi" style={{ marginBottom: 16 }}>
-        <div className="card kpi">
-          <div className="label">Resource action</div>
-          <div className="value num">{k.action}</div>
-          <div className="sub">{k.act_now} act now · {k.verify_then_act} verify then act</div>
-        </div>
-        <div className="card kpi">
-          <div className="label">Data verification</div>
-          <div className="value num">{k.verification}</div>
-          <div className="sub">low risk on evidence too weak to trust</div>
-        </div>
-        <div className="card kpi">
-          <div className="label">Monthly reporting completeness</div>
-          <div className="value num">{pct(k.reporting_completeness)}</div>
-          <div className="sub">{pct(k.on_time_rate)} on time · {k.silent} silent PHCs</div>
-        </div>
-        <div className="card kpi">
-          <div className="label">Stale commodity reports</div>
-          <div className="value num">{k.stale_commodity_reports}</div>
-          <div className="sub">NHLMIS report overdue or absent</div>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-7"><QueueMatrix k={k} prev={prev?.kpis} /></div>
+        <div className="lg:col-span-5"><InsightPanel ins={ins} month={month} /></div>
       </div>
 
-      <div className="grid g-2" style={{ marginBottom: 16 }}>
-        <div className="card">
-          <h2>LGAs ranked by action and verification need</h2>
-          <div style={{ overflowX: "auto" }}>
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>#</th><th>LGA</th><th className="n">PHCs</th><th className="n">Act now</th><th className="n">Verify then act</th>
-                  <th className="n">Verification</th><th className="n">Silent</th><th className="n">Stale LMIS</th><th className="n">Reporting</th>
-                </tr>
-              </thead>
-              <tbody>
-                {s.lgas.map((l: any) => (
-                  <tr key={l.lga_id}>
-                    <td className="muted num">{l.lga_rank}</td>
-                    <td><Link href={`/lga/${l.lga_id}?month=${month}`}>{l.lga}</Link></td>
-                    <td className="n">{l.facilities}</td>
-                    <td className="n">{l.act_now}</td>
-                    <td className="n">{l.verify_then_act}</td>
-                    <td className="n">{l.verification}</td>
-                    <td className="n">{l.silent}</td>
-                    <td className="n">{l.stale_commodity}</td>
-                    <td className="n">{pct(l.reporting_completeness)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div className="stack">
-          <div className="card">
-            <h2>Risk × confidence</h2>
-            <div className="matrix">
-              <div />
-              <div className="h">High / moderate confidence</div>
-              <div className="h">Low confidence</div>
-              <div className="h">High / critical risk</div>
-              <div className="cell"><div className="big num">{cell("HIGH_OR_CRITICAL", "HIGH_OR_MODERATE")}</div><QueueTag tag="ACT NOW" /></div>
-              <div className="cell"><div className="big num">{cell("HIGH_OR_CRITICAL", "LOW")}</div><QueueTag tag="VERIFY THEN ACT" /></div>
-              <div className="h">Normal / watch risk</div>
-              <div className="cell"><div className="big num">{cell("NORMAL_OR_WATCH", "HIGH_OR_MODERATE")}</div><QueueTag tag="MONITOR" /></div>
-              <div className="cell"><div className="big num">{cell("NORMAL_OR_WATCH", "LOW")}</div><QueueTag tag="DO NOT ASSUME SAFE" /></div>
-            </div>
-            <p className="muted" style={{ fontSize: 12, marginBottom: 0 }}>
-              Low observed risk with low confidence is not safe: those PHCs go to verification, never to green.
-            </p>
-          </div>
-          <div className="card">
-            <h2>What drives resource action</h2>
-            <table className="data">
-              <tbody>
-                {s.action_by_domain.sort((a: any, b: any) => b.n - a.n).map((d: any) => (
-                  <tr key={d.top_domain}><td>{DOMAIN_LABEL[d.top_domain] ?? d.top_domain}</td><td className="n">{d.n}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stat label="Reporting completeness" value={pct(k.reporting_completeness)} sub="monthly reports received" />
+        <Stat label="On-time reporting" value={pct(k.on_time_rate)} sub="by the reporting deadline" />
+        <Stat label="Silent PHCs" value={String(k.silent)} sub="consecutive reports missing" />
+        <Stat label="Stale commodity reports" value={String(k.stale_commodity_reports)} sub="NHLMIS overdue or absent" />
       </div>
 
-      <div className="grid g-half" style={{ marginBottom: 16 }}>
-        <div className="card">
-          <h2>Map</h2>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="card p-4">
+          <h2 className="mb-3 text-[16px] font-semibold text-ink">LGAs by Act now share</h2>
           <LgaMap lgas={lgaGeo} facilities={facGeo} month={month} />
-        </div>
-        <div className="card">
-          <h2>Queue sizes over time</h2>
-          <QueueTrend data={s.trend} />
-          <p className="muted" style={{ fontSize: 12 }}>
-            Action rises with the rainy-season malaria peak (Aug to Nov). Verification tracks missing and overdue reports.
+          <p className="mt-2 text-[12px] text-ink-3">
+            {coords.outside_state} PHCs have coordinates outside Bauchi State. They are not shown on the map and still appear in the queues.
           </p>
-        </div>
+        </section>
+        <LgaTable rows={s.lgas} month={month} />
       </div>
 
-      <div className="grid g-half">
-        {([["Top of the state action queue", top.action], ["Top of the state verification queue", top.verification]] as const).map(([title, rows]) => (
-          <div className="card" key={title}>
-            <h2>{title}</h2>
-            <table className="data">
-              <tbody>
-                {rows.map((r: any) => (
-                  <tr key={r.facility_id}>
-                    <td className="muted num">{r.rank_state}</td>
-                    <td>
-                      <Link href={`/facility/${r.facility_id}?month=${month}`}>{r.name}</Link>
-                      <div className="muted" style={{ fontSize: 12 }}>{r.lga} · {r.evidence_summary}</div>
-                    </td>
-                    <td><QueueTag tag={r.tag} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <section className="card p-4 lg:col-span-2">
+          <h2 className="mb-1 text-[16px] font-semibold text-ink">Queue sizes over time</h2>
+          <QueueTrend data={trend} />
+          <p className="text-[12px] text-ink-3">
+            {omitted > 0 && `The first ${omitted} months are not shown: with no history yet, almost every PHC lands in verification. `}
+            Action rises with the rainy-season malaria peak; verification tracks missing and overdue reports.
+          </p>
+        </section>
+        <DriverBars rows={s.action_by_domain} />
       </div>
-    </>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <TopList title="Top of the state action queue" rows={top.action} month={month} />
+        <TopList title="Top of the state verification queue" rows={top.verification} month={month} />
+      </div>
+    </div>
   );
 }
