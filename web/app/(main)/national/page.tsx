@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Legacy from "@/components/Legacy";
 import NationalCommand from "@/components/national/NationalCommand";
-import { SimChip } from "@/components/Tags";
 import { api, monthLabel } from "@/lib/api";
 
 export const metadata: Metadata = { title: "National Command Centre" };
@@ -18,25 +16,21 @@ export default async function National({ searchParams }: {
   const [summary, st, geo] = await Promise.all([api("/national/summary", month), api("/national/states", month), api("/national/geo")]);
 
   return (
-    <Legacy>
-      <div className="page-head">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="crumbs"><span>National</span><span className="sep">/</span><span>{monthLabel(month, true)} analysis</span></div>
-          <h1>National Command Centre</h1>
-          <div className="secondary" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <p className="text-[12px] text-ink-3">National / {monthLabel(month, true)} analysis</p>
+          <h1 className="text-[24px] font-semibold leading-8 text-ink">National Command Centre</h1>
+          <p className="text-[13px] text-ink-3">
             {summary.kpis.states} states across all six geopolitical zones · state-level summaries; open a state portal for facility detail
-            <SimChip />
-          </div>
+          </p>
         </div>
-        <div className="actions">
-          <Link className="btn primary" href={`/national/briefing?month=${month}`}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></svg>
-            Briefing mode
-          </Link>
-        </div>
+        <Link className="rounded bg-[var(--brand)] px-3 py-1.5 text-[13px] font-medium text-[var(--canvas)]" href={`/national/briefing?month=${month}`}>
+          Briefing mode
+        </Link>
       </div>
       <NationalCommand key={month} summary={summary} states={st.states} geo={geo}
         initial={{ metric: sp.metric, state: sp.state, zone: sp.zone, q: sp.q, sort: sp.sort }} />
-    </Legacy>
+    </div>
   );
 }

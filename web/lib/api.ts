@@ -23,46 +23,10 @@ export async function apiOrNull<T = any>(path: string, month?: string): Promise<
   return res.json();
 }
 
-// Used by the landing / national / briefing components (legacy styles). The state pages use lib/tokens.ts.
-export const QUEUE_LABEL: Record<string, string> = {
-  RESOURCE_ACTION: "Resource action",
-  DATA_VERIFICATION: "Data verification",
-  MONITOR: "Monitor",
-};
-
-export const TAG_STYLE: Record<string, { color: string; label: string; icon: string }> = {
-  "ACT NOW": { color: "var(--st-critical)", label: "Act now", icon: "▲" },
-  "VERIFY THEN ACT": { color: "var(--st-serious)", label: "Verify then act", icon: "◆" },
-  "DO NOT ASSUME SAFE": { color: "var(--st-warning)", label: "Do not assume safe", icon: "?" },
-  MONITOR: { color: "var(--st-good)", label: "Monitor", icon: "●" },
-};
-
-/** State status label (national view). Mirrors the Risk x Confidence matrix at state level;
- * always shown as text + icon, never colour alone. */
-export const STATUS_STYLE: Record<string, { label: string; long: string; icon: string; color: string; soft: string }> = {
-  act_and_verify: { label: "Act and verify", long: "High action load and a large evidence gap", icon: "▲", color: "var(--st-critical)", soft: "var(--st-critical-soft)" },
-  action_load: { label: "High action load", long: "Many PHCs need resupply or repair now", icon: "◆", color: "var(--st-serious)", soft: "var(--st-serious-soft)" },
-  evidence_gap: { label: "Evidence gap", long: "Too many PHCs whose calm cannot be trusted", icon: "?", color: "var(--st-warning)", soft: "var(--st-warning-soft)" },
-  watch: { label: "Watch", long: "Action load and evidence gap both below the alert thresholds", icon: "●", color: "var(--st-good)", soft: "var(--st-good-soft)" },
-};
-
-export const SEV_COLOR: Record<string, string> = {
-  CRITICAL: "var(--st-critical)",
-  HIGH: "var(--st-serious)",
-  WATCH: "var(--st-warning)",
-  NORMAL: "var(--st-good)",
-};
-
 export const DOMAIN_LABEL: Record<string, string> = {
   malaria_commodity: "Malaria commodities",
   vaccine_cold_chain: "Vaccine & cold chain",
   service_pressure: "Service pressure",
-};
-
-export const CONF_COLOR: Record<string, string> = {
-  HIGH: "var(--st-good)",
-  MODERATE: "var(--st-warning)",
-  LOW: "var(--st-critical)",
 };
 
 /** Map / sort metrics for the national view. `worse` = higher values need more attention. */

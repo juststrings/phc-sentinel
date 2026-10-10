@@ -10,5 +10,5 @@ export default async function BriefingPage({ searchParams }: { searchParams: Pro
   const meta = await api("/meta/months");
   const month = sp.month ?? meta.latest;
   const [summary, st, geo] = await Promise.all([api("/national/summary", month), api("/national/states", month), api("/national/geo")]);
-  return <div className="legacy"><Briefing summary={summary} states={st.states} geo={geo} initialSlide={Number(sp.slide ?? 1) - 1} /></div>;
+  return <Briefing summary={summary} states={st.states} geo={geo} initialSlide={Number(sp.slide ?? 1) - 1} />;
 }

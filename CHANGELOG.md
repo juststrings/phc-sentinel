@@ -14,9 +14,11 @@ This branch merges it (main itself is untouched) and carries the restyle across:
   `/` (role switcher), `/national` and `/national/briefing` are main's pages. Old `/lga/{id}` and `/facility/{id}` still redirect.
 - **Shell:** the sidebar has a **View** switcher (National Command Centre or any state, grouped by zone) and state-aware links.
   The top-bar search finds facilities in every state. The theme toggle is in the top bar.
-- **National, landing and briefing pages** keep main's components. Their old stylesheet is scoped to a `.legacy` wrapper
-  (`web/app/legacy.css`, `postcss.config.mjs`) and mapped onto the design tokens, so they follow light/dark and cannot affect the new pages.
-  Restyling them to the Stitch look is a follow-up. The national map follows the theme toggle.
+- **National Command Centre, landing page, briefing mode, state brief drawer and not-found page** keep main's data and behaviour
+  (metric switcher, state cards with search/zone/sort filters, shareable URLs, zone table, six slides with arrow keys and print) and are
+  rebuilt in the Stitch style with the same tokens and `Chip`/`QueueMatrix` components. State status labels use the queue tokens
+  (act and verify = act now, high action load = verify then act, evidence gap = do not assume safe with hatch, watch = monitor).
+  The national map uses a red ramp (as in Stitch) and follows the theme toggle. Main's old class-based stylesheet is gone.
 - **API:** the restyle's endpoints are state-scoped: `/state/{code}/insights`, `/state/{code}/coords`, `/state/{code}/facilities`,
   plus `/search` (all states). `/meta/rules` and `/meta/thresholds` stay global; the thresholds table now also shows the state-status
   and geography thresholds. A facility with no row for the month returns 404.

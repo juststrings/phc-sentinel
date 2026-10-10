@@ -3,12 +3,13 @@ import { useTheme } from "@/components/useTheme";
 import maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { METRICS, pct, int } from "@/lib/api";
-import { StatusPill } from "@/components/Tags";
+import StatusChip from "@/components/StatusChip";
 
-/* Sequential single-hue ramp (blue), 5 classes. Light mode: light -> dark = less -> more attention.
- * Dark mode is its own selection: dark -> light, so "more attention" is the brighter fill. */
-const RAMP_LIGHT = ["#b7d3f6", "#86b6ef", "#3987e5", "#1c5cab", "#0d366b"];   // step 150 first: stays distinct from the "Not in demo" grey
-const RAMP_DARK = ["#184f95", "#256abf", "#3987e5", "#6da7ec", "#b7d3f6"];
+/* Sequential single-hue ramp (red, as in the Stitch design), 5 classes. Light mode: light -> dark = less -> more attention.
+ * Dark mode is its own selection: dark -> light, so "more attention" is the brighter fill. The lightest step stays
+ * distinct from the "Not in demo" grey. */
+const RAMP_LIGHT = ["#fde0e0", "#f9a8a8", "#ef6b6b", "#c42b2b", "#7f1414"];
+const RAMP_DARK = ["#4a1d24", "#7f2a33", "#b23a46", "#e0555f", "#fca5a5"];
 const NIGERIA: [number, number, number, number] = [2.67, 4.27, 14.68, 13.89];
 
 export type Bins = { edges: number[]; ramp: string[] };
@@ -95,10 +96,10 @@ export default function NationalMap({ geo, states, metric, selected, onSelect, h
   useEffect(() => {
     if (!ref.current || !ready) return;
     const css = getComputedStyle(document.documentElement);
-    const surface = css.getPropertyValue("--surface-1").trim() || "#fcfcfb";
+    const surface = css.getPropertyValue("--card").trim() || "#ffffff";
     const nodata = css.getPropertyValue("--nodata").trim() || "#e4e3dd";
     const nodataLine = css.getPropertyValue("--nodata-line").trim() || "#cfcdc5";
-    const text = css.getPropertyValue("--text-primary").trim() || "#0b0b0b";
+    const text = css.getPropertyValue("--ink").trim() || "#0f172a";
     const map = new maplibregl.Map({
       container: ref.current,
       style: {
@@ -165,7 +166,7 @@ export default function NationalMap({ geo, states, metric, selected, onSelect, h
         if (!f.properties.covered) continue;
         const s = byCode[f.properties.state_code];
         const el = document.createElement("div");
-        el.className = "map-label" + (f.properties.bin >= 3 !== dark ? " dark" : "");
+        el.className = "map-label" + (f.properties.bin >= 3 !== dark ? " on-dark" : "");
         el.innerHTML = `${s.state.replace(" (Abuja)", "")}<small>${pct(s[metric])}</small>`;
         markers.current.push(new maplibregl.Marker({ element: el }).setLngLat(labelPoint(f.geometry)).addTo(map));
       }
@@ -174,38 +175,44 @@ export default function NationalMap({ geo, states, metric, selected, onSelect, h
   }, [data, selected, byCode, metric, showLabels, dark, ready]);
 
   const s = tip?.code ? byCode[tip.code] : null;
+  const row = (label: string, value: string) => (
+    <div className="flex justify-between gap-4 text-[12px]"><span className="text-ink-3">{label}</span><span className="font-medium tabular-nums text-ink">{value}</span></div>
+  );
   return (
-    <div className="map-wrap">
-      <div ref={ref} className="map-national" style={height ? { height } : undefined} role="img"
+    <div className="relative">
+      <div ref={ref} className={`w-full overflow-hidden rounded border border-line ${height ? "" : "h-[460px]"}`} style={height ? { height } : undefined} role="img"
         aria-label={`Map of Nigeria: covered states shaded by ${m.label}; other states greyed, not in demo`} />
       {tip && (
-        <div className="map-tip" style={{ left: tip.x, top: tip.y }}>
+        <div className="pointer-events-none absolute z-10 w-56 rounded-lg border border-line bg-card p-3" style={{ left: Math.min(tip.x + 14, 9999), top: tip.y + 14 }}>
           {s ? (
             <>
-              <b>{s.state}</b> <span className="muted">· {s.zone}</span>
-              <div style={{ margin: "6px 0" }}><StatusPill status={s.status} /></div>
-              <div className="row"><span>{m.label}</span><span>{pct(s[metric], 1)}</span></div>
-              <div className="row"><span>PHCs assessed</span><span>{int(s.facilities)}</span></div>
-              <div className="row"><span>Act now</span><span>{int(s.act_now)}</span></div>
-              <div className="row"><span>Verify then act</span><span>{int(s.verify_then_act)}</span></div>
-              <div className="row"><span>Do not assume safe</span><span>{int(s.verification)}</span></div>
-              <div className="row"><span>Reporting completeness</span><span>{pct(s.reporting_completeness)}</span></div>
-              <div className="muted" style={{ marginTop: 6, fontSize: 11.5 }}>Click for the state brief</div>
+              <div className="text-[13px] font-semibold text-ink">{s.state} <span className="font-normal text-ink-3">· {s.zone}</span></div>
+              <div className="my-1.5"><StatusChip status={s.status} /></div>
+              {row(m.label, pct(s[metric], 1))}
+              {row("PHCs assessed", int(s.facilities))}
+              {row("Act now", int(s.act_now))}
+              {row("Verify then act", int(s.verify_then_act))}
+              {row("Do not assume safe", int(s.verification))}
+              {row("Reporting completeness", pct(s.reporting_completeness))}
+              <div className="mt-1.5 text-[11px] text-ink-3">Click for the state brief</div>
             </>
           ) : (
-            <><b>{tip.name}</b><div className="muted" style={{ marginTop: 2 }}>Not in demo</div></>
+            <><div className="text-[13px] font-semibold text-ink">{tip.name}</div><div className="text-[12px] text-ink-3">Not in demo</div></>
           )}
         </div>
       )}
-      <div className="scale" aria-label="Map legend">
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-2" aria-label="Map legend">
         <span>{m.label}{m.worse ? "" : ` (${dark ? "brighter" : "darker"} = lower)`}:</span>
-        <span className="bins">
+        <span className="flex items-end gap-0.5">
           {bins.ramp.map((c, i) => (
-            <span key={c}><i style={{ background: c }} />{i === 0 ? pct(bins.edges[0]) : i === bins.ramp.length - 1 ? pct(bins.edges[bins.ramp.length]) : " "}</span>
+            <span key={c} className="flex flex-col items-start">
+              <i className="block h-2.5 w-7" style={{ background: c }} />
+              <span className="h-3 text-[10px] text-ink-3 tabular-nums">{i === 0 ? pct(bins.edges[0]) : i === bins.ramp.length - 1 ? pct(bins.edges[bins.ramp.length]) : ""}</span>
+            </span>
           ))}
         </span>
-        <span className="muted">{dark ? "brighter" : "darker"} = needs more attention</span>
-        <span className="nodata" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i /> Not in demo</span>
+        <span className="text-ink-3">{dark ? "brighter" : "darker"} = needs more attention</span>
+        <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-4 rounded-sm border" style={{ background: "var(--nodata)", borderColor: "var(--nodata-line)" }} /> Not in demo</span>
       </div>
     </div>
   );

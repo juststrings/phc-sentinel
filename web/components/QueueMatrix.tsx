@@ -25,7 +25,7 @@ function Card({ c }: { c: Cell }) {
 }
 
 /** The 2x2 queue matrix: operational risk (rows) x data confidence (columns). Counts come from /state/summary. */
-export default function QueueMatrix({ k, prev }: { k: any; prev?: any }) {
+export default function QueueMatrix({ k, prev, title = "Where each facility sits" }: { k: any; prev?: any; title?: string }) {
   const cells: Cell[] = [
     { tag: "ACT NOW", n: k.act_now, prev: prev?.act_now, blurb: "High or critical risk on evidence we can trust." },
     { tag: "VERIFY THEN ACT", n: k.verify_then_act, prev: prev?.verify_then_act, blurb: "High or critical risk, but the data are unreliable. Confirm first." },
@@ -35,7 +35,7 @@ export default function QueueMatrix({ k, prev }: { k: any; prev?: any }) {
   return (
     <section className="card p-4" aria-label="Queue matrix">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-[16px] font-semibold text-ink">Where each facility sits</h2>
+        <h2 className="text-[16px] font-semibold text-ink">{title}</h2>
         <span className="text-[12px] text-ink-3">{k.facilities.toLocaleString()} public PHCs</span>
       </div>
       <div className="grid grid-cols-[28px_1fr_1fr] grid-rows-[auto_1fr_1fr] gap-2">
