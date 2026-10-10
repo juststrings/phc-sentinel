@@ -47,11 +47,14 @@ export default function Sidebar({ states, zones }: { states: StateInfo[]; zones:
   const base = code ? `/state/${code}` : null;
   const nav = [
     { href: "/national", label: "National", icon: "home", on: path === "/national" },
+    { href: "/states", label: "States", icon: "building", on: path === "/states" },
     ...(base ? [
       { href: base, label: "State Overview", icon: "home", on: path === base },
       { href: `${base}/lga`, label: "LGA Queues", icon: "list", on: path.startsWith(`${base}/lga`) },
-      { href: `${base}/facilities`, label: "Facilities", icon: "building", on: path.startsWith(`${base}/facilit`) },
     ] : []),
+    base
+      ? { href: `${base}/facilities`, label: "Facilities", icon: "building", on: path.startsWith(`${base}/facilit`) }
+      : { href: "/facilities", label: "Facilities", icon: "building", on: path.startsWith("/facilities") },
     { href: "/about", label: "Method", icon: "rule", on: path === "/about" },
   ];
   return (

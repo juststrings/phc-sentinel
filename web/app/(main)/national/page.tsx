@@ -30,7 +30,7 @@ export default async function National({ searchParams }: {
         </Link>
       </div>
       <NationalCommand key={month} summary={summary} states={st.states} geo={geo}
-        initial={{ metric: sp.metric, state: sp.state, zone: sp.zone, q: sp.q, sort: sp.sort }} />
+        initial={{ metric: sp.metric, state: sp.state }} />
     </div>
   );
 }

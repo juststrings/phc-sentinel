@@ -30,6 +30,12 @@ This branch merges it (main itself is untouched) and carries the restyle across:
 > Windows note: `python -m sentinel all` fails on Windows (its process pool cannot unpickle `_state_all` under spawn, in code pushed to main).
 > The same per-state steps were run in separate processes instead, then `python -m sentinel national` and `load-db`.
 
+- **States page (`/states`):** the state cards moved off the national page. Filters: show one state, search, zone, status and sort, kept in the
+  URL. Each card links to that state's overview, LGA queues and facilities, and opens the state brief.
+- **Facilities for all states (`/facilities`):** the directory with a State filter (API: `GET /facilities?state=`). A state's own directory
+  stays at `/state/{code}/facilities`; both share one component.
+- **National page is quieter:** 5 headline cards (was 7), no state cards, and the zones table sits directly under the map.
+
 ### Web app (`web/`)
 - **Design system:** Tailwind with CSS-variable tokens (`web/app/globals.css`, `web/lib/tokens.ts`). Queue colours are named tokens:
   act-now (deep red), verify-then-act (amber), do-not-assume-safe (indigo with a diagonal hatch), monitor (teal).

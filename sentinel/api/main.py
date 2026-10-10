@@ -272,7 +272,7 @@ def state_coords(code: str = CODE):
 
 FACILITY_SORTS = {"name": "f.name", "lga": "f.lga", "queue": "fm.queue", "risk": "fm.risk_n",
                   "confidence": "fm.conf_n", "last_dhis2": "l.last_dhis2", "last_nhlmis": "fm.nhlmis_age_days",
-                  "rank": "fm.rank_state"}
+                  "rank": "fm.rank_state", "state": "f.state_code"}
 
 
 def facility_directory(state: str | None, month: str | None, text_q: str | None = None, lga_id: str | None = None,
@@ -326,6 +326,20 @@ def state_facilities(code: str = CODE, month: str | None = MONTH, q_: str | None
     """Directory of every PHC in the state."""
     state_info(code)
     return facility_directory(code, month, q_, lga_id, queue, tag, area, risk, confidence, stale, unverified,
+                              sort, dir, page, page_size)
+
+
+@app.get("/facilities")
+def all_facilities(month: str | None = MONTH, state: str | None = None, q_: str | None = Query(None, alias="q"),
+                   lga_id: str | None = None, queue: str | None = None, tag: str | None = None,
+                   area: str | None = None, risk: str | None = None, confidence: str | None = None,
+                   stale: bool = False, unverified: bool = False, sort: str = "name",
+                   dir: str = Query("asc", pattern="^(asc|desc)$"), page: int = Query(1, ge=1),
+                   page_size: int = Query(25, ge=1, le=100)):
+    """Directory of every PHC in every state, or in one state when `state` is given. Each row carries its state_code."""
+    if state:
+        state_info(state)
+    return facility_directory(state, month, q_, lga_id, queue, tag, area, risk, confidence, stale, unverified,
                               sort, dir, page, page_size)
 
 
