@@ -13,7 +13,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     <div className="md:flex">
       <Suspense fallback={null}><Sidebar states={st.states} zones={st.zones} /></Suspense>
       <div className="min-w-0 flex-1">
-        <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line bg-card px-4 py-3 md:px-6">
+        <header className="shell-chrome flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line bg-card px-4 py-3 md:px-6">
           <ScopeLabel states={st.states} />
           <div className="ml-auto flex flex-wrap items-center gap-3">
             <Suspense fallback={null}><MonthPicker months={meta.months} latest={meta.latest} /></Suspense>

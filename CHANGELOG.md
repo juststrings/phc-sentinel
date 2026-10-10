@@ -31,7 +31,8 @@ This branch merges it (main itself is untouched) and carries the restyle across:
 > The same per-state steps were run in separate processes instead, then `python -m sentinel national` and `load-db`.
 
 - **States page (`/states`):** the state cards moved off the national page. Filters: show one state, search, zone, status and sort, kept in the
-  URL. Each card links to that state's overview, LGA queues and facilities, and opens the state brief.
+  URL. On each card, Overview, LGA queues and Facilities open that state's page in a modal (tabs switch between them, "Open full page" and
+  Ctrl/Cmd-click still open the page); Brief opens the state brief. The modal is the real page in an iframe named `phc-modal`, shown without the banner and shell.
 - **Facilities for all states (`/facilities`):** the directory with a State filter (API: `GET /facilities?state=`). A state's own directory
   stays at `/state/{code}/facilities`; both share one component.
 - **National page is quieter:** 5 headline cards (was 7), no state cards, and the zones table sits directly under the map.

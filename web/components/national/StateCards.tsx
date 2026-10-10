@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import StatusChip from "@/components/StatusChip";
 import { int, pct } from "@/lib/api";
 import StateBrief from "./StateBrief";
+import StateModal, { VIEW_LABEL, viewPath, type ModalView } from "./StateModal";
 
 const SORTS = [
   { key: "pct_act_now", label: "% Act now", worse: true },
@@ -47,6 +48,7 @@ export default function StateCards({ states, zones, month, initial }: {
   const [query, setQuery] = useState(initial.q ?? "");
   const [sortKey, setSortKey] = useState(SORTS.some((s) => s.key === initial.sort) ? initial.sort! : "pct_act_now");
   const [brief, setBrief] = useState<string | null>(states.some((s) => s.state_code === initial.brief) ? initial.brief! : null);
+  const [modal, setModal] = useState<{ code: string; view: ModalView } | null>(null);
   const q = `?month=${month}`;
 
   useEffect(() => {
@@ -141,14 +143,23 @@ export default function StateCards({ states, zones, month, initial }: {
                 <Sparkline values={s.trend.map((t: any) => t.act_now)} label={`Act now, last ${s.trend.length} months: ${s.trend.map((t: any) => t.act_now).join(", ")}`} />
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3 text-[12px] font-medium">
-                <Link className="rounded border border-line px-2 py-1 text-ink hover:bg-muted" href={`/state/${s.state_code}${q}`}>Overview</Link>
-                <Link className="rounded border border-line px-2 py-1 text-ink hover:bg-muted" href={`/state/${s.state_code}/lga${q}`}>LGA queues</Link>
-                <Link className="rounded border border-line px-2 py-1 text-ink hover:bg-muted" href={`/state/${s.state_code}/facilities${q}`}>Facilities</Link>
+                {(Object.keys(VIEW_LABEL) as ModalView[]).map((v) => (
+                  <a
+                    key={v} href={viewPath(s.state_code, v, month)}
+                    onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setModal({ code: s.state_code, view: v }); }}
+                    className="rounded border border-line px-2 py-1 text-ink hover:bg-muted"
+                  >{VIEW_LABEL[v]}</a>
+                ))}
                 <button className="ml-auto rounded border border-line px-2 py-1 text-ink hover:bg-muted" onClick={() => setBrief(s.state_code)}>Brief</button>
               </div>
             </article>
           ))}
         </div>
+      )}
+
+      {modal && (
+        <StateModal code={modal.code} name={states.find((x) => x.state_code === modal.code)?.state ?? modal.code} view={modal.view} month={month}
+          onView={(view) => setModal({ code: modal.code, view })} onClose={() => setModal(null)} />
       )}
 
       {sel && (

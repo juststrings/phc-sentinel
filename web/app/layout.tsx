@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {/* IBM Plex Sans loads from a runtime stylesheet link, so builds never depend on the network; the font stack falls back. */}
       <head>
         {/* Apply a saved theme choice before first paint, so there is no flash. */}
-        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('phc-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}" }} />
+        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('phc-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}if(window.name==='phc-modal')document.documentElement.dataset.embed='1'" }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" />
       </head>

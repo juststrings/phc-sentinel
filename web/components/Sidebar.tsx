@@ -58,7 +58,7 @@ export default function Sidebar({ states, zones }: { states: StateInfo[]; zones:
     { href: "/about", label: "Method", icon: "rule", on: path === "/about" },
   ];
   return (
-    <aside className="border-b border-line bg-card md:sticky md:top-[var(--banner-h,32px)] md:h-[calc(100vh-var(--banner-h,32px))] md:w-60 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r">
+    <aside className="shell-chrome border-b border-line bg-card md:sticky md:top-[var(--banner-h,32px)] md:h-[calc(100vh-var(--banner-h,32px))] md:w-60 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r">
       <Link href="/" className="block px-4 py-3 md:px-5 md:py-5" aria-label="PHC Sentinel home">
         <div className="text-[16px] font-bold leading-5 text-ink">PHC Sentinel</div>
         <div className="text-[12px] text-ink-3">Early warning for primary health care</div>
