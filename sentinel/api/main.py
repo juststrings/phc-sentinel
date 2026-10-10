@@ -117,7 +117,7 @@ def state_insights(month: str | None = MONTH):
 
 @app.get("/facilities")
 def facilities(month: str | None = MONTH, q_: str | None = Query(None, alias="q"), lga_id: str | None = None,
-               queue: str | None = None, area: str | None = None, risk: str | None = None,
+               queue: str | None = None, tag: str | None = None, area: str | None = None, risk: str | None = None,
                confidence: str | None = None, stale: bool = False, coords: bool = False,
                sort: str = "name", dir: str = Query("asc", pattern="^(asc|desc)$"),
                page: int = Query(1, ge=1), page_size: int = Query(25, ge=1, le=100)):
@@ -133,7 +133,7 @@ def facilities(month: str | None = MONTH, q_: str | None = Query(None, alias="q"
     if q_:
         where.append("(f.name ILIKE :q OR f.ward ILIKE :q OR f.facility_id ILIKE :q)")
         p["q"] = f"%{q_}%"
-    for col, val in (("f.lga_id", lga_id), ("fm.queue", queue), ("fm.top_domain", area),
+    for col, val in (("f.lga_id", lga_id), ("fm.queue", queue), ("fm.tag", tag.upper() if tag else None), ("fm.top_domain", area),
                      ("fm.operational_risk", risk.upper() if risk else None),
                      ("fm.data_confidence", confidence.upper() if confidence else None)):
         if val:
