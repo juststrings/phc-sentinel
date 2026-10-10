@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Chip from "@/components/Chip";
 import Icon from "@/components/Icon";
+import StateSelect from "@/components/StateSelect";
 import { DOMAIN_LABEL, api, apiOrNull, int, monthLabel } from "@/lib/api";
 import { QUEUE_BY_TAG } from "@/lib/tokens";
 
@@ -69,6 +70,7 @@ export default async function FacilityDirectory({ code, sp }: { code?: string; s
 
       <form method="get" className="card flex flex-wrap items-end gap-3 p-3">
         <input type="hidden" name="month" value={month} />
+        {code && <StateSelect states={states} value={code} view="facilities" />}
         <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-[12px] text-ink-3">
           Search
           <input name="q" defaultValue={sp.q ?? ""} placeholder="Facility, ward or ID" className={`${sel} w-full`} />

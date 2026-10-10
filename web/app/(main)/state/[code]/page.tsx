@@ -8,6 +8,7 @@ import InsightPanel from "@/components/InsightPanel";
 import LgaMap from "@/components/LgaMap";
 import LgaTable from "@/components/LgaTable";
 import QueueMatrix from "@/components/QueueMatrix";
+import StateSelect from "@/components/StateSelect";
 import StatusChip from "@/components/StatusChip";
 import { api, apiOrNull, int, monthLabel, pct } from "@/lib/api";
 
@@ -60,7 +61,8 @@ export default async function StateOverview({ params, searchParams }: P) {
   if (!s) notFound();
   const idx = meta.months.indexOf(month);
   const prevMonth = idx > 0 ? meta.months[idx - 1] : null;
-  const [prev, ins, top, lgaGeo, facGeo, coords, cfg] = await Promise.all([
+  const [metaStates, prev, ins, top, lgaGeo, facGeo, coords, cfg] = await Promise.all([
+    api("/meta/states"),
     prevMonth ? api(`/state/${code}/summary`, prevMonth) : Promise.resolve(null),
     api(`/state/${code}/insights`, month),
     api(`/state/${code}/top`, month),
@@ -81,6 +83,7 @@ export default async function StateOverview({ params, searchParams }: P) {
           <p className="text-[12px] text-ink-3">
             <Link href={`/national?month=${month}`} className="hover:underline">National</Link> / {st.name} State · {st.zone}
           </p>
+          <div className="mb-2 mt-1"><StateSelect states={metaStates.states} value={code} view="overview" /></div>
           <h1 className="text-[24px] font-semibold leading-8 text-ink">{st.name}: where to act, where to verify</h1>
           <p className="flex flex-wrap items-center gap-2 text-[13px] text-ink-3">
             {int(k.facilities)} public PHCs across {s.lgas.length} LGAs · {monthLabel(month)} analysis, as of {cfg.settings.calendar.analysis_lag_days} days after month end

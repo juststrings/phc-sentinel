@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Chip from "@/components/Chip";
 import LgaMap from "@/components/LgaMap";
 import LgaSelect from "@/components/LgaSelect";
+import StateSelect from "@/components/StateSelect";
 import WorkList from "@/components/WorkList";
 import { api, apiOrNull, monthLabel, pct } from "@/lib/api";
 import { QUEUE_TABS, tabRows } from "@/lib/queues";
@@ -17,8 +18,8 @@ export default async function LgaQueues({ params, searchParams }: {
   const month = m ?? meta.latest;
   const d = await apiOrNull(`/state/${code}/lga/${id}/queue`, month);
   if (!d) notFound();
-  const [summary, lgaGeo, facGeo] = await Promise.all([
-    api(`/state/${code}/summary`, month), api(`/state/${code}/geo/lgas`, month), api(`/state/${code}/geo/facilities?lga_id=${id}`, month),
+  const [meta2, summary, lgaGeo, facGeo] = await Promise.all([
+    api("/meta/states"), api(`/state/${code}/summary`, month), api(`/state/${code}/geo/lgas`, month), api(`/state/${code}/geo/facilities?lga_id=${id}`, month),
   ]);
   const l = d.lga;
   const active = QUEUE_TABS.find((t) => t.key === tab) ?? QUEUE_TABS[0];
@@ -33,7 +34,8 @@ export default async function LgaQueues({ params, searchParams }: {
         <div>
           <p className="text-[12px] text-ink-3"><Link href={`/national?month=${month}`} className="hover:underline">National</Link> /{" "}
             <Link href={`/state/${code}?month=${month}`} className="hover:underline">{d.state.name}</Link> / LGA queues</p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <StateSelect states={meta2.states} value={code} view="lga" />
             <LgaSelect lgas={summary.lgas} value={id} code={code} />
             <h1 className="sr-only">{l.lga} LGA queues</h1>
           </div>
