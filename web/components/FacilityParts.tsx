@@ -66,7 +66,6 @@ export function MalariaCard({ ex, trends, cfg }: { ex: any; trends: any[]; cfg: 
           })}
           <div className="text-[11px] text-ink-3">Scale 0 to {scale} months. Red line: {eop}-month emergency order point. Grey line: {min}-month minimum.</div>
         </div>
-        </div>
       )}
       {src && (
         <p className="mt-3 text-[12px] text-ink-3">
