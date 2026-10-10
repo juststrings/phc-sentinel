@@ -7,6 +7,7 @@
   color-scheme: light;
   --canvas: #f8fafc; --card: #ffffff; --muted-bg: #f1f5f9; --line: #e2e8f0;
   --s1: #2563eb; --s2: #0891b2; --s3: #7c3aed;
+  --map-icon-filter: none;
   --banner-bg: #fffbeb; --banner-fg: #92400e; --banner-bd: #fde68a;
   --ink: #0f172a; --ink-2: #334155; --ink-3: #64748b; --brand: #0f172a;
 
@@ -40,7 +41,7 @@
     --r-watch-bg: #422006; --r-watch-fg: #fef08a; --r-normal-bg: #1e293b; --r-normal-fg: #cbd5e1;
     --c-high-bg: #052e16; --c-high-fg: #bbf7d0; --c-mod-bg: #082f49; --c-mod-fg: #bae6fd;
     --c-low-bg: #1e293b; --c-low-fg: #cbd5e1;
-    --banner-bg: #2a2010; --banner-fg: #fcd34d; --banner-bd: #b45309;
+    --banner-bg: #2a2010; --banner-fg: #fcd34d; --banner-bd: #b45309; --map-icon-filter: invert(1);
   }
 }
 
@@ -58,7 +59,7 @@
   --r-watch-bg: #422006; --r-watch-fg: #fef08a; --r-normal-bg: #1e293b; --r-normal-fg: #cbd5e1;
   --c-high-bg: #052e16; --c-high-fg: #bbf7d0; --c-mod-bg: #082f49; --c-mod-fg: #bae6fd;
   --c-low-bg: #1e293b; --c-low-fg: #cbd5e1;
-  --banner-bg: #2a2010; --banner-fg: #fcd34d; --banner-bd: #b45309;
+  --banner-bg: #2a2010; --banner-fg: #fcd34d; --banner-bd: #b45309; --map-icon-filter: invert(1);
 }
 
 html, body { margin: 0; padding: 0; }
@@ -78,3 +79,16 @@ a { color: inherit; text-decoration: none; }
 
 /* Simulated-data banner: shown on every page. */
 .banner { background: var(--banner-bg); color: var(--banner-fg); border-bottom: 1px solid var(--banner-bd); font-size: 12.5px; padding: 6px 16px; text-align: center; }
+
+/* MapLibre chrome (popups, zoom buttons, attribution) follows the theme. */
+:root .maplibregl-popup-content { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; box-shadow: none; font-size: 12px; padding: 8px 10px; }
+:root .maplibregl-popup-anchor-bottom .maplibregl-popup-tip, :root .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip, :root .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--card); }
+:root .maplibregl-popup-anchor-top .maplibregl-popup-tip, :root .maplibregl-popup-anchor-top-left .maplibregl-popup-tip, :root .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--card); }
+:root .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--card); }
+:root .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--card); }
+:root .maplibregl-ctrl-group { background: var(--card); border: 1px solid var(--line); box-shadow: none; }
+:root .maplibregl-ctrl-group button { background-color: transparent; }
+:root .maplibregl-ctrl-group button + button { border-top-color: var(--line); }
+:root .maplibregl-ctrl-icon { filter: var(--map-icon-filter); }
+:root .maplibregl-ctrl-attrib { background: color-mix(in srgb, var(--card) 80%, transparent) !important; color: var(--ink-2) !important; }
+:root .maplibregl-ctrl-attrib a { color: var(--ink-2) !important; }

@@ -51,3 +51,23 @@ export const CONF_STYLE: Record<Confidence, { bg: string; fg: string; hex: strin
   MODERATE: { bg: "var(--c-mod-bg)", fg: "var(--c-mod-fg)", hex: "#64748b" },
   LOW: { bg: "var(--c-low-bg)", fg: "var(--c-low-fg)", hex: "#4338ca" },
 };
+
+/** Map palette per theme. MapLibre cannot read CSS variables, so the values live here.
+ *  The ramp shades LGAs by their Act now share. It is a neutral slate scale, not a queue colour, so red, amber,
+ *  indigo and teal dots stay readable on every step in both themes. */
+export const MAP_THEME = {
+  light: {
+    surface: "#ffffff",
+    boundary: "#94a3b8",
+    ramp: ["#f1f5f9", "#e2e8f0", "#cbd5e1", "#94a3b8", "#64748b", "#475569"],
+    fillOpacity: 0.7,
+    dim: 0.12,
+  },
+  dark: {
+    surface: "#0b1220",
+    boundary: "#64748b",
+    ramp: ["#1e293b", "#2b3750", "#3a4a6b", "#4c6088", "#6479a6", "#8196c4"],
+    fillOpacity: 0.85,
+    dim: 0.25,
+  },
+} as const;
