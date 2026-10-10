@@ -6,6 +6,9 @@ import { whyText } from "@/lib/queues";
 import { ApiError, DOMAIN_LABEL, api, monthLabel } from "@/lib/api";
 import { CONF_LABEL, CONF_STYLE, RISK_LABEL, RISK_STYLE, type Confidence, type Risk } from "@/lib/tokens";
 
+/** A registry field is shown only when it holds a real value: not empty, null or "Unknown". */
+const isKnown = (v: unknown) => v != null && String(v).trim() !== "" && !/^unknown$/i.test(String(v).trim());
+
 const SEV_ORDER: Record<string, number> = { severe: 0, major: 1, minor: 2 };
 
 export default async function FacilityDetail({ params, searchParams }: {
@@ -99,7 +102,7 @@ export default async function FacilityDetail({ params, searchParams }: {
           <div className="th mb-2">Facility record</div>
           <dl className="space-y-1 text-[13px]">
             {[["Type", f.facility_type], ["Ownership", f.ownership_type], ["Functional status", f.functional_status], ["NHFR code", f.nhfr_code],
-              ["Latitude", f.latitude?.toFixed(4)], ["Longitude", f.longitude?.toFixed(4)]].filter(([, v]) => v).map(([k, v]) => (
+              ["Latitude", f.latitude?.toFixed(4)], ["Longitude", f.longitude?.toFixed(4)]].filter(([, v]) => isKnown(v)).map(([k, v]) => (
               <div key={k as string} className="flex justify-between gap-3"><dt className="text-ink-3">{k}</dt><dd className="text-right text-ink">{v}</dd></div>
             ))}
           </dl>
