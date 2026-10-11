@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { api, apiOrNull } from "./api";
 import { getScope } from "./scope";
 import type { Scope } from "./scopeCore";
@@ -24,8 +24,14 @@ export async function actingPerson(): Promise<Person> {
   if (id) {
     try {
       const r = await apiOrNull<any>(`/people/${encodeURIComponent(id)}`);
-      if (r?.person && personInScope(r.person, scope)) return r.person;
+      const hint = scope.level === "national" ? (await headers()).get("x-phc-state") : null;
+      const elsewhere = hint && r?.person && r.person.level !== "national" && r.person.state_code !== hint;     // someone from another state
+      if (r?.person && personInScope(r.person, scope) && !elsewhere) return r.person;
     } catch { /* outside the view: fall back to the lead */ }
+  }
+  if (scope.level === "national") {
+    const st = (await headers()).get("x-phc-state");
+    if (st) { try { return await leadPerson({ level: "state", state: st }); } catch { /* unknown state: fall back */ } }
   }
   return leadPerson(scope);
 }
@@ -38,9 +44,11 @@ export function personInScope(p: Person, s: Scope): boolean {
 
 /** People you may act as in this view (a short list: leads first). */
 export async function actingOptions(scope: Scope): Promise<Person[]> {
-  const lead = await leadPerson(scope);
+  const lead = await actingPerson();
   let rest: Person[] = [];
-  if (scope.level === "national") rest = (await api<any>("/meta/personas")).personas;
+  const st = scope.level === "national" ? (await headers()).get("x-phc-state") : null;
+  if (scope.level === "national" && st) rest = (await api<any>(`/meta/personas?state=${st}`)).personas;
+  else if (scope.level === "national") rest = (await api<any>("/meta/personas")).personas;
   else if (scope.level === "state") rest = (await api<any>(`/meta/personas?state=${scope.state}`)).personas;
   else rest = (await api<any>(`/state/${scope.state}/people?lga_id=${scope.lga}&limit=40`)).people;
   const seen = new Set([lead.person_id]);

@@ -23,6 +23,8 @@ Built on top of `ui/stitch-restyle`; your pages and design are kept.
   escalations. All sending is simulated; mutations go through server actions that carry the View-as header, and the API refuses anything outside the view.
 - **Messages page** for a state board and an LGA team: a mail icon with a badge in the top bar and a Messages link in the sidebar (badge = drafts to approve plus
   replies to review), with tabs To approve, Sent (simulated) and Inbox: replies.
+- **Acting as follows the page.** National officers can act only on state-level cases, so as National admin on a state's page the default acting person is that
+  state's Director of PHC Services (the web middleware passes the state in the URL to server components and actions). Pick someone else any time in Acting as.
 - **Tests:** `tests/test_view_as.py` calls the real API as each viewer and checks that routes are refused and no other state's or LGA's rows appear.
 
 ## UI restyle to the Stitch design (branch `ui/stitch-restyle`)
