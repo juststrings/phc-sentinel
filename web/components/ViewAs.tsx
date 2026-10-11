@@ -78,7 +78,7 @@ export default function ViewAs({ scope, states, lgaName }: { scope: Scope; state
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><path d="m6 9 6 6 6-6" /></svg>
       </button>
       {open && (
-        <div role="dialog" aria-label="View as" className="absolute left-3 right-3 z-[60] mt-1 space-y-2 rounded-lg border border-line bg-card p-3 shadow-lg md:right-auto md:w-[260px]">
+        <div role="dialog" aria-label="View as" className="absolute left-3 right-3 z-[60] mt-1 space-y-2 rounded-lg border border-line bg-card p-3 shadow-lg [&_select]:w-full [&_select]:min-w-0">
           <div className="space-y-1.5">
             {radio("national", "National admin", "Everything, in every state")}
             {radio("state", "State board", "One state and its LGAs")}
