@@ -14,19 +14,20 @@ export function useStateCode(): string | null {
 }
 
 /** Navigation follows the "View as" choice: National sees everything; a state board sees its state; an LGA team sees its LGA. */
-export default function Sidebar({ scope, states, lgaName }: { scope: Scope; states: StateInfo[]; lgaName?: string }) {
+export default function Sidebar({ scope, states, lgaName, badge = 0 }: { scope: Scope; states: StateInfo[]; lgaName?: string; badge?: number }) {
   const path = usePathname();
   const month = useSearchParams().get("month");
   const q = month ? `?month=${month}` : "";
   const code = useStateCode();
 
-  const top = (href: string, label: string, icon: string, on: boolean) => (
+  const top = (href: string, label: string, icon: string, on: boolean, count = 0) => (
     <Link
       key={href} href={`${href}${q}`} aria-current={on ? "page" : undefined}
       className={`flex items-center gap-2 whitespace-nowrap rounded px-3 py-2 text-[13px] font-medium ${on ? "bg-[var(--brand)] text-[var(--canvas)]" : "text-ink-2 hover:bg-muted"}`}
     >
       <Icon name={icon} />
       {label}
+      {count > 0 && <span className="ml-auto rounded-full bg-[var(--q-act)] px-1.5 text-[11px] font-semibold leading-4 text-white tabular-nums" aria-label={`${count} need attention`}>{count > 999 ? "999+" : count}</span>}
     </Link>
   );
   // The selected state's pages: a sub-menu of "States", indented under a guide line.
@@ -54,6 +55,7 @@ export default function Sidebar({ scope, states, lgaName }: { scope: Scope; stat
             {sub(`${base}/lga`, "LGA queues", path.startsWith(`${base}/lga`))}
             {sub(`${base}/facilities`, "Facilities", path.startsWith(`${base}/facilit`))}
             {sub(`${base}/actions`, "Action Centre", path.startsWith(`${base}/actions`))}
+            {sub(`${base}/messages`, "Messages", path.startsWith(`${base}/messages`))}
           </div>
         )}
         {top("/facilities", "Facilities", "list", path === "/facilities")}
@@ -73,6 +75,7 @@ export default function Sidebar({ scope, states, lgaName }: { scope: Scope; stat
         {top(`${base}/lga`, "LGA queues", "list", path.startsWith(`${base}/lga`))}
         {top(`${base}/facilities`, "Facilities", "building", path.startsWith(`${base}/facilit`))}
         {top(`${base}/actions`, "Action Centre", "arrow", path.startsWith(`${base}/actions`))}
+        {top(`${base}/messages`, "Messages", "mail", path.startsWith(`${base}/messages`), badge)}
         {top("/me", "My cases", "list", path === "/me")}
         {top("/about", "Method", "rule", path === "/about")}
       </>
@@ -85,6 +88,7 @@ export default function Sidebar({ scope, states, lgaName }: { scope: Scope; stat
         {top(home, "Clinic queues", "list", path === home)}
         {top(`${base}/facilities`, "Facilities", "building", path.startsWith(`${base}/facilit`))}
         {top(`${home}/actions`, "Action Centre", "arrow", path.startsWith(`${home}/actions`))}
+        {top(`${home}/messages`, "Messages", "mail", path.startsWith(`${home}/messages`), badge)}
         {top("/me", "My cases", "list", path === "/me")}
         {top("/about", "Method", "rule", path === "/about")}
       </>

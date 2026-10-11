@@ -21,6 +21,8 @@ Built on top of `ui/stitch-restyle`; your pages and design are kept.
   Facility pages gain **Take action** (live status, open cases, recommended playbooks). National gets **State responses** (suggested states, request a
   response, read the state's lead and plan). **My cases** lists cases owned by or escalated to the acting person. A simulated clock moves deadlines and
   escalations. All sending is simulated; mutations go through server actions that carry the View-as header, and the API refuses anything outside the view.
+- **Messages page** for a state board and an LGA team: a mail icon with a badge in the top bar and a Messages link in the sidebar (badge = drafts to approve plus
+  replies to review), with tabs To approve, Sent (simulated) and Inbox: replies.
 - **Tests:** `tests/test_view_as.py` calls the real API as each viewer and checks that routes are refused and no other state's or LGA's rows appear.
 
 ## UI restyle to the Stitch design (branch `ui/stitch-restyle`)
