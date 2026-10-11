@@ -21,7 +21,7 @@ async function viewHeaders(): Promise<Record<string, string>> {
 
 /** GET with retries: a hosted API that is waking from sleep or restarting answers 502/503/504 or drops the connection for a few seconds. */
 async function getRetry(url: URL, headers: Record<string, string>): Promise<Response> {
-  const waits = [1500, 3000, 6000, 10000, 15000];
+  const waits = [2000, 4000, 8000, 12000, 16000, 20000, 20000];
   for (let i = 0; ; i++) {
     try {
       const res = await fetch(url, { cache: "no-store", headers });
