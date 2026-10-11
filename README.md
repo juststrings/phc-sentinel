@@ -34,18 +34,32 @@ same-zone states stand in for them ([decision D9](docs/decisions.md)). The list 
 
 ## Views
 
-Every view has its own address and is one click from the landing page. The demo has no login; a pilot adds
-real authentication with state-scoped access.
+There is no login. A **Viewing as** switcher at the top of the sidebar (like Power BI's "View as") chooses who you are looking at the
+dashboard as, and the API filters every row by that choice. A pilot replaces it with real authentication and keeps the same rules.
+
+| View as | Sees |
+|---|---|
+| **National admin** (default) | Everything: all states, the National Command Centre, State responses |
+| **State board** (pick a state) | That state and its LGAs: overview, LGA queues, facilities, Action Centre. Another state's pages and rows are refused |
+| **LGA team** (pick a state, then an LGA) | That LGA and its clinics: clinic queues, facilities, its own Action Centre. No state-wide figures |
 
 | URL | View |
 |---|---|
-| `/` | Role switcher: National Command Centre, or pick a state |
-| `/national` | National Command Centre: headline numbers, interactive Nigeria map (colour by % act now, % data verification, reporting completeness or % stale stock reports), state cards with search / zone filter / sort, zone comparison, and a state brief opened from the map or a card. Brief, metric and filters stay in the URL, e.g. `/national?state=kano&metric=pct_stale`. |
-| `/national/briefing` | Briefing mode: large-type slides for senior officials (arrow keys, printable) |
-| `/state/{code}` | State overview: LGA ranking, Risk x Confidence, map, queue trend |
-| `/state/{code}/lga/{id}` | LGA action and verification queues |
-| `/state/{code}/facility/{id}` | Facility explanation: evidence by domain, why confidence is reduced, trends |
-| `/about` | Method, coverage, data labels, access model, limitations |
+| `/` | National: role switcher. Other views are taken to their own home |
+| `/national`, `/national/briefing`, `/national/responses` | Command Centre (map, zones, state briefs), briefing mode, State responses |
+| `/states`, `/facilities` | National: state cards with filters and a state brief or modal; every PHC in every state |
+| `/state/{code}` | State overview: LGA ranking, risk x confidence, map, queue trend |
+| `/state/{code}/lga/{id}` | LGA clinic queues with filters and CSV export |
+| `/state/{code}/facilities`, `/state/{code}/facility/{id}` | Facility directory; facility explanation, live status and **Take action** |
+| `/state/{code}/actions`, `/state/{code}/lga/{id}/actions` | **Action Centre**: cases, approvals, replies, resupply (state), LGA accountability, escalations |
+| `/cases/{id}`, `/me` | A case (playbook, messages, replies, escalation ladder, timeline, actions); my cases |
+| `/about` | Method, coverage, data labels, limitations |
+
+**Action Centre.** Every flagged PHC becomes a case with an owner, a playbook, a deadline and an escalation ladder (LGA officer, LGA coordinator,
+state officer, state director, national). Messages are drafted from templates and **a person approves them** before a simulated send; replies come back
+through a parser (anything unclear goes to a person). Resupply requests are pre-filled and always need approval. People, messages and replies are
+synthetic and nothing is ever sent. Pick **Acting as** inside the Action Centre; a simulated clock moves deadlines and escalations
+(`python -m sentinel actions reset | tick --days N`).
 
 ## Run it
 
@@ -66,6 +80,7 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # (bin/ 
 docker compose up -d db                       # PostGIS on localhost:5433
 python -m sentinel all                        # 12 states + national marts (~13 min with 3 workers)
 python -m sentinel load-db                    # ~8 min
+python -m sentinel actions load               # synthetic directory, simulated truth and the opening cases
 uvicorn sentinel.api.main:app --port 8000
 cd web && npm install && API_URL=http://localhost:8000 npm run dev
 pytest -m "not slow"                          # 68 tests (1 skipped), ~15 s

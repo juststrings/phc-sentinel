@@ -22,7 +22,7 @@ services:
   # API starts after it succeeds.
   pipeline:
     build: .
-    command: sh -c "python -m sentinel all && python -m sentinel load-db"
+    command: sh -c "python -m sentinel all && python -m sentinel load-db && python -m sentinel actions load"
     environment:
       DATABASE_URL: postgresql+psycopg://sentinel:sentinel@db:5432/sentinel
       SENTINEL_WORKERS: "3"           # ~1.5 GB RAM per worker; lower it on small machines

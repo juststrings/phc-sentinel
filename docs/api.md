@@ -1,11 +1,23 @@
 # API reference
 
-Read-only FastAPI over the PostgreSQL marts. Interactive docs: http://localhost:8000/docs.
+FastAPI over the PostgreSQL marts (reads), plus the action layer (cases, messages, simulated clock: POST). Interactive docs: http://localhost:8000/docs.
 Every response describes simulated operational data; `/meta/data-labels` returns the banner text.
 
 `month` is always optional (`YYYY-MM`, defaults to the latest analysis month, 2026-09). `{code}` is a state
 code from `config/settings.yaml`: `kano`, `kaduna`, `bauchi`, `adamawa`, `fct`, `niger`, `ogun`, `oyo`,
 `enugu`, `abia`, `delta`, `bayelsa`. Unknown codes, LGAs or facilities return 404; invalid parameters 422.
+
+## View as (scope)
+
+Every request except `/health`, `/meta/*`, `/sim/clock` and `/sim/tick` must carry `X-View-As`:
+`national`, `state:<code>` or `lga:<code>:<lga_id>`. Without it the API answers 401; a malformed value is 400; a path or row outside the view is 403.
+National may call everything; a state view only its own state; an LGA view only its LGA's rows (its state-wide figures, `/national/*`
+and other states return 403). Lists (facility directory, `/search`, cases, messages, replies, people) are clamped to the view, and the person you act as
+must sit inside it. See `sentinel/viewas.py` and `tests/test_view_as.py`.
+
+Added for the interface: `GET /facilities`, `/state/{code}/facilities`, `/search`, `/state/{code}/insights`, `/state/{code}/coords`, `/meta/lgas`,
+`/meta/rules`, `/meta/thresholds`; action layer: `/state/{code}/cases`, `/cases/{id}` and its POST actions, `/messages` (+ approve, edit), `/responses` (+ review),
+`/state/{code}/actions/summary?lga_id=`, `/state/{code}/resupply-requests`, `/me/cases`, `/national/responses`, `/sim/*`, `/meta/signin`.
 
 ## National Command Centre (state aggregates only)
 
