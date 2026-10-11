@@ -1,0 +1,41 @@
+# Name pools for SYNTHETIC people in the action-layer directory.
+# These are common, generic Nigerian given names and surnames. Full names are generated as random
+# first-name x surname combinations; they are not, and must not be, the names of real office-holders.
+# No real officials were looked up. Postings cross regions, so some names are drawn from another zone.
+
+honorifics:
+  any: [Dr., Pharm.]
+  female: [Mrs., Hajiya]
+  male: [Mallam, Alhaji, Chief]
+  north_only: [Mallam, Alhaji, Hajiya]
+
+pools:
+  North West: &hausa
+    female: [Hauwa, Zainab, Fatima, Aisha, Amina, Hadiza, Maryam, Rabi, Saadatu, Bilkisu, Halima, Asma'u, Khadija, Sadiya, Hafsat, Jamila, Ummi, Rahma]
+    male: [Aminu, Ibrahim, Usman, Sani, Yusuf, Abubakar, Mustapha, Shehu, Nasiru, Bashir, Kabiru, Lawal, Habibu, Isah, Jibril, Auwal, Sulaiman, Haruna]
+    surname: [Bello, Musa, Abdullahi, Garba, Ahmed, Sule, Idris, Danjuma, Mohammed, Lawan, Yakubu, Shuaibu, Umar, Aliyu, Tukur, Gambo, Inuwa, Sabo]
+  North East:
+    female: [Hauwa, Fatima, Aishatu, Falmata, Yagana, Zara, Hadiza, Maimuna, Amina, Hajara, Kaltum, Fanna, Safiya, Rakiya]
+    male: [Modu, Bukar, Kyari, Goni, Abba, Usman, Ibrahim, Mamman, Adamu, Babagana, Ali, Umar, Baba, Lawan]
+    surname: [Bukar, Kachalla, Mustapha, Goni, Gana, Waziri, Musa, Bello, Abdullahi, Yerima, Shettima, Hamman, Adamu, Mshelia]
+  North Central:
+    female: [Ojochenemi, Ladi, Hannatu, Comfort, Fatima, Esther, Nguavese, Mnena, Ene, Salamatu, Ruth, Jummai, Aisha, Kaltume]
+    male: [Ndagi, Terkula, Ojonugwa, Danladi, Emmanuel, Aondona, Yakubu, Gbenga, Musa, Mohammed, Samuel, Ibrahim, Shaba, Ahmed]
+    surname: [Ndagi, Gana, Kolo, Tsado, Aondoakaa, Iorver, Agbo, Ocheni, Yakubu, Musa, Danjuma, Audu, Bawa, Ibrahim]
+  South West:
+    female: [Folake, Adebola, Oluwaseun, Funmilayo, Bisola, Kemi, Titilayo, Omolara, Adeola, Yetunde, Bukola, Ronke, Temitope, Abiodun]
+    male: [Adebayo, Oluwaseun, Babatunde, Olumide, Kayode, Femi, Tunde, Segun, Ayodele, Gbenga, Akin, Wale, Rotimi, Biodun]
+    surname: [Adeyemi, Ogunleye, Adebayo, Olawale, Ogunbiyi, Akinola, Balogun, Ojo, Oyelaran, Adeniyi, Afolabi, Oladipo, Ajayi, Oyewole]
+  South East:
+    female: [Ngozi, Chioma, Adaeze, Nkechi, Amaka, Ifeoma, Uchechi, Obiageli, Chinyere, Ogechi, Nneka, Ebere, Chidinma, Ijeoma]
+    male: [Chinedu, Obinna, Emeka, Ikenna, Chukwuemeka, Nnamdi, Uchenna, Kelechi, Ifeanyi, Chidi, Okechukwu, Tochukwu, Ugochukwu, Ebuka]
+    surname: [Okafor, Eze, Nwosu, Okeke, Obi, Nwankwo, Okonkwo, Uche, Onyeka, Nwachukwu, Ani, Ugwu, Agu, Odo]
+  South South:
+    female: [Ebiere, Tare, Preye, Oghenekaro, Ese, Ovie, Ebikabowei, Tonye, Blessing, Mercy, Ejiro, Atare, Seiyefa, Erhuvwu]
+    male: [Ovie, Tare, Ebikeme, Oghenero, Ese, Tonye, Ebi, Preye, Godspower, Efe, Akpo, Ayebaemi, Kesiena, Ogheneovo]
+    surname: [Ebikeme, Oghene, Tobi, Okoro, Ebiye, Ere, Oyibo, Emuobo, Akpobire, Diri, Ekiyor, Omonigho, Ayah, Tuoyo]
+
+# Full names that must never be generated (well-known public figures). The generator re-draws on a match.
+blocked_full_names: [Babatunde Fashola, Abba Kyari, Kashim Shettima, Bola Tinubu, Atiku Abubakar, Ngozi Okonjo-Iweala,
+  Ibrahim Babangida, Sani Abacha, Aminu Kano, Usman Dan Fodio, Yusuf Buhari, Aisha Buhari, Nasir El-Rufai,
+  Femi Gbajabiamila, Kayode Fayemi, Peter Obi, Godswill Akpabio, Ibrahim Shekarau, Abdullahi Ganduje]

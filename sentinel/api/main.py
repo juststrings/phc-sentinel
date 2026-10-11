@@ -18,14 +18,18 @@ from sqlalchemy import text
 from ..config import mapping, settings, states
 from ..db import engine
 from ..engines.dqr import PRODUCT_LABEL, RULES
+from . import actions as actions_api
+from . import cases as cases_api
 from .explain import corroborated_by
 from .thresholds import rule_severities, thresholds
 
 app = FastAPI(title="PHC Sentinel API", version="0.2.0",
               description="Operational risk x data confidence for PHCs in 12 Nigerian states, with a national "
                           "roll-up. Facility list and boundaries are real (GRID3); all operational data are SIMULATED.")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.include_router(actions_api.router)
+app.include_router(cases_api.router)
 
 MONTH = Query(None, pattern=r"^\d{4}-\d{2}$", description="Analysis month YYYY-MM; defaults to the latest")
 CODE = Path(..., description="State code from settings.yaml, e.g. bauchi")

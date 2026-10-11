@@ -9,6 +9,12 @@
     python -m sentinel national      state- and national-level marts (all states)
     python -m sentinel load-db       load staging + marts into PostgreSQL/PostGIS
     python -m sentinel all           facilities -> simulate -> pipeline per state, then national marts
+
+  Action layer (needs the database loaded; people, messages and replies are SYNTHETIC):
+    python -m sentinel actions load       build + load the synthetic directory and the simulated truth, then reset
+    python -m sentinel actions reset      clean start: open cases for the latest month, clock to start, demo scenario seeded
+    python -m sentinel actions seed-demo  add the curated demo scenario (Bauchi + one other state)
+    python -m sentinel actions tick --days N   advance the simulated clock N days
 """
 from __future__ import annotations
 
@@ -62,7 +68,9 @@ def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="python -m sentinel", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("command", nargs="?", default="all",
-                   choices=["coverage", "fetch-grid3", "facilities", "simulate", "pipeline", "national", "load-db", "all"])
+                   choices=["coverage", "fetch-grid3", "facilities", "simulate", "pipeline", "national", "load-db", "all", "actions"])
+    p.add_argument("subcommand", nargs="?", help="for `actions`: load | reset | seed-demo | tick")
+    p.add_argument("--days", type=int, default=1, help="for `actions tick`")
     p.add_argument("--state", action="append", help="state code (repeatable); default: all configured states")
     p.add_argument("--workers", type=int, default=int(os.environ.get("SENTINEL_WORKERS", 3)))
     a = p.parse_args(argv)
@@ -84,6 +92,8 @@ def main(argv: list[str] | None = None) -> None:
     elif a.command == "national":
         from .national import build
         build()
+    elif a.command == "actions":
+        _actions(a.subcommand or "reset", a.days)
     elif a.command == "load-db":
         from .db import load
         load()
@@ -94,6 +104,24 @@ def main(argv: list[str] | None = None) -> None:
         from .national import build
         build()
         print(f"All states done in {time.time() - t0:.0f}s")
+
+
+def _actions(sub: str, days: int) -> None:
+    from .actions import demo, engine as eng
+    from .db import engine
+    with engine().begin() as conn:
+        if sub == "load":
+            demo.load_directory_and_truth(conn)
+            demo.reset(conn)
+        elif sub == "reset":
+            demo.reset(conn)
+        elif sub == "seed-demo":
+            print(json.dumps(demo.seed_demo(conn), indent=1, default=str))
+        elif sub == "tick":
+            for _ in range(days):
+                print(json.dumps(eng.tick(conn), default=str))
+        else:
+            raise SystemExit(f"unknown actions subcommand {sub!r}: load | reset | seed-demo | tick")
 
 
 def _by_size(codes: list[str]) -> list[str]:

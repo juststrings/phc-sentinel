@@ -1,0 +1,72 @@
+# Message templates. SYNTHETIC demo: nothing is ever sent. Every body starts "Sentinel (DEMO)".
+# SMS bodies must render to <= 160 characters for every facility (tested); placeholders that can run long
+# carry a max length and are shortened with "." if needed.
+# Placeholders: {facility} {lga} {state} {case_ref} {due} {name} {role_title} {commodities} {qty_list} {period}
+# expects: reply codes the template asks for (parsed by sentinel/actions/replies.py).
+
+placeholder_max: {facility: 30, lga: 18, state: 14, name: 24}
+
+templates:
+  T_STOCK_CHECK:
+    purpose: Ask the Officer-in-Charge to confirm malaria commodity stock and fridge status
+    expects: [ACT, RDT, FRIDGE]
+    sms: "Sentinel (DEMO): {facility}, pls confirm stock. Reply: ACT <qty> RDT <qty> FRIDGE <1/0>. Ref {case_ref}"
+    whatsapp: "Sentinel (DEMO) - stock check for {facility}, {lga} LGA.\nPlease reply with today's physical count:\nACT <packs> RDT <tests> FRIDGE <1 working / 0 not working>\nExample: ACT 40 RDT 120 FRIDGE 1\nRef {case_ref}"
+    email: "Subject: Sentinel (DEMO) stock check {case_ref} - {facility}\n\nDear colleague,\n\nPlease confirm today's physical stock of ACTs and malaria RDTs at {facility} ({lga} LGA), and whether the vaccine refrigerator is working.\nReply in one line: ACT <packs> RDT <tests> FRIDGE <1/0>.\n\nThis is a PHC Sentinel demonstration message. Ref {case_ref}."
+  T_STOCK_REMINDER:
+    purpose: Reminder for an unanswered stock check
+    expects: [ACT, RDT, FRIDGE]
+    sms: "Sentinel (DEMO) reminder: {facility}, pls reply ACT <qty> RDT <qty> FRIDGE <1/0>. Ref {case_ref}"
+  T_VACCINE_CHECK:
+    purpose: Ask the Officer-in-Charge to confirm Penta vaccine stock and fridge status
+    expects: [PENTA, FRIDGE]
+    sms: "Sentinel (DEMO): {facility}, pls confirm vaccine stock. Reply: PENTA <doses> FRIDGE <1/0>. Ref {case_ref}"
+  T_VACCINE_REMINDER:
+    purpose: Reminder for an unanswered vaccine check
+    expects: [PENTA, FRIDGE]
+    sms: "Sentinel (DEMO) reminder: {facility}, pls reply PENTA <doses> FRIDGE <1/0>. Ref {case_ref}"
+  T_RECEIPT_CHECK:
+    purpose: Ask the facility to confirm receipt of a resupply
+    expects: [RECEIVED]
+    sms: "Sentinel (DEMO): {facility}, resupply dispatched. On arrival reply RECEIVED <item> <qty>, e.g. RECEIVED ACT 200. Ref {case_ref}"
+  T_COLD_CHAIN_ALERT:
+    purpose: Alert the cold chain officer and the OIC to a non-functional refrigerator
+    expects: [FRIDGE]
+    sms: "Sentinel (DEMO): fridge reported not working at {facility}. Move vaccines to a working store. Reply FRIDGE 1 when fixed. Ref {case_ref}"
+  T_REPORT_REMINDER:
+    purpose: Remind the facility to submit missing monthly reports
+    expects: [REPORT]
+    sms: "Sentinel (DEMO): {facility}, monthly report for {period} not received. Pls submit and reply REPORT SENT. Ref {case_ref}"
+  T_VISIT_REQUEST:
+    purpose: Ask the LGA M&E officer to visit or call a facility that has not answered
+    expects: []
+    sms: "Sentinel (DEMO): {facility} has not answered report reminders. Pls call or visit by {due}. Ref {case_ref}"
+  T_LMIS_REQUEST:
+    purpose: Request the overdue NHLMIS report and an interim stock count
+    expects: [ACT, RDT, FRIDGE]
+    sms: "Sentinel (DEMO): {facility}, NHLMIS report overdue. Pls submit and reply ACT <qty> RDT <qty> FRIDGE <1/0>. Ref {case_ref}"
+  T_SESSION_SUPPORT:
+    purpose: Ask the LIO to review the immunisation session plan
+    expects: []
+    sms: "Sentinel (DEMO): RI sessions below plan at {facility}. Pls review the session plan with the OIC by {due}. Ref {case_ref}"
+  T_LGA_REVIEW:
+    purpose: Ask the LGA to hold a reporting review
+    expects: []
+    sms: "Sentinel (DEMO): {lga} LGA has many PHCs in data verification. Pls hold a reporting review by {due}. Ref {case_ref}"
+  T_STATE_RESPONSE:
+    purpose: National request for a state response
+    expects: []
+    sms: "Sentinel (DEMO): NPHCDA requests a {state} State response plan on PHC action and verification by {due}. Ref {case_ref}"
+    email: "Subject: Sentinel (DEMO) request for a state response {case_ref}\n\nThe national PHC Sentinel review flags {state} State. Please acknowledge, name a response lead and submit a short response plan by {due}.\n\nThis is a PHC Sentinel demonstration message."
+  T_CASE_NOTICE:
+    purpose: Notify a person that a case was opened (bundled into the daily digest unless P1)
+    expects: []
+    sms: "Sentinel (DEMO): {priority} case {case_ref} opened for {facility}: {playbook}. Due {due}."
+  T_ESCALATION:
+    purpose: Notify the next person on the ladder
+    expects: []
+    sms: "Sentinel (DEMO): case {case_ref} ({facility}) escalated to you: no action within SLA. Due {due}."
+  T_DIGEST:
+    purpose: Daily digest bundling routine notifications
+    expects: []
+    sms: "Sentinel (DEMO) daily digest: {count} new items for you. Open the Action Centre to review."

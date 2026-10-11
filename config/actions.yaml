@@ -1,0 +1,360 @@
+# PHC Sentinel action layer: who acts, on what, by when, and what happens if nobody does.
+# Everything here is configuration; the code reads it and contains no state- or rule-specific logic.
+# Basis labels: DESIGN (design judgement, a pilot would set it with the state) unless noted.
+# People, contacts, messages and replies are SYNTHETIC. No message is ever sent (provider: simulated).
+
+version: 1
+
+# ---- Roles ---------------------------------------------------------------------------------
+# per: how many people hold the role per unit at that level. owns: playbooks this role owns.
+roles:
+  nat_director_phc: {level: national, title: "Director, PHC Systems Development (NPHCDA)", per: 1,
+                     responsibilities: "National oversight; requests state responses", owns: []}
+  nat_logistics:    {level: national, title: "National Logistics Desk Officer", per: 1,
+                     responsibilities: "Commodity escalations from states", owns: []}
+  nat_mne:          {level: national, title: "National M&E / Data Officer", per: 1,
+                     responsibilities: "Evidence-gap states, reporting recovery", owns: []}
+  st_exec_sec:      {level: state, title: "Executive Secretary, State PHC Development Agency/Board", per: 1,
+                     responsibilities: "Top of the state escalation ladder", owns: []}
+  st_dir_phc:       {level: state, title: "Director of PHC Services", per: 1,
+                     responsibilities: "State response owner", owns: [PB_STATE_RESPONSE]}
+  st_lmcu:          {level: state, title: "State LMCU Coordinator", per: 1,
+                     responsibilities: "Resupply decisions, commodity escalations", owns: []}
+  st_immunisation:  {level: state, title: "State Immunisation Officer", per: 1,
+                     responsibilities: "Vaccine stockouts", owns: []}
+  st_cold_chain:    {level: state, title: "State Cold Chain Officer", per: 1,
+                     responsibilities: "Fridge failures", owns: []}
+  st_mne:           {level: state, title: "State M&E Officer", per: 1,
+                     responsibilities: "Reporting gaps, data verification", owns: [PB_LGA_REPORTING_REVIEW]}
+  lga_phc_coord:    {level: lga, title: "LGA PHC Coordinator", per: 1,
+                     responsibilities: "LGA response owner, first escalation point", owns: []}
+  lga_mne:          {level: lga, title: "LGA M&E Officer", per: 1,
+                     responsibilities: "Missing and late reports, silent facilities", owns: [PB_RECOVER_REPORTS]}
+  lga_logistics:    {level: lga, title: "LGA Logistics / LMIS Focal Person", per: 1,
+                     responsibilities: "Commodity verification, resupply requests",
+                     owns: [PB_RESUPPLY, PB_VERIFY_STOCK, PB_REQUEST_LMIS_REPORT]}
+  lga_immunisation: {level: lga, title: "LGA Immunisation Officer (LIO)", per: 1,
+                     responsibilities: "Vaccine stockouts, session shortfalls", owns: [PB_VACCINE_RESUPPLY, PB_SESSION_SUPPORT]}
+  lga_cold_chain:   {level: lga, title: "LGA Cold Chain Officer", per: 1,
+                     responsibilities: "Fridge inspection", owns: [PB_COLD_CHAIN_INSPECT]}
+  fac_oic:          {level: facility, title: "Officer-in-Charge", per: 1,
+                     responsibilities: "Receives verification requests; replies", owns: []}
+  fac_mne:          {level: facility, title: "Facility M&E Focal Person", per: 1,
+                     responsibilities: "Submits monthly reports", owns: []}
+
+# Quick-pick personas in the "Acting as" switcher (first person of the role in scope).
+persona_quick_picks: [nat_director_phc, st_dir_phc, lga_phc_coord, fac_oic]
+
+# ---- Directory generation ------------------------------------------------------------------
+directory:
+  seed_offset: 9100                 # added to simulator.seed
+  female_share: 0.45                # DESIGN
+  cross_zone_share: 0.15            # share of names drawn from another zone's pool (postings cross regions)
+  honorific_share: 0.12             # used sparingly
+  channels: {sms: 0.55, whatsapp: 0.30, email: 0.05, in_app: 0.10}   # facility staff skew to SMS
+  officer_channels: {sms: 0.25, whatsapp: 0.40, email: 0.15, in_app: 0.20}
+  # responsiveness: Beta draw per person around an LGA mean (labelled simulator parameter, A20)
+  responsiveness: {lga_mean_alpha: 6, lga_mean_beta: 2.5, person_concentration: 12, never_reply_share: 0.05}
+
+# ---- Case statuses and transitions -----------------------------------------------------------
+statuses: [open, acknowledged, in_progress, awaiting_response, resupply_requested, resolved, closed_no_action, closed_duplicate]
+terminal: [resolved, closed_no_action, closed_duplicate]
+transitions:
+  open:               [acknowledged, in_progress, awaiting_response, resupply_requested, resolved, closed_no_action, closed_duplicate]
+  acknowledged:       [in_progress, awaiting_response, resupply_requested, resolved, closed_no_action, closed_duplicate]
+  in_progress:        [awaiting_response, resupply_requested, resolved, closed_no_action]
+  awaiting_response:  [in_progress, resupply_requested, resolved, closed_no_action]
+  resupply_requested: [in_progress, awaiting_response, resolved, closed_no_action]
+  resolved: []
+  closed_no_action: []
+  closed_duplicate: []
+
+priorities: [P1, P2, P3]
+outcome_codes:
+  resupplied: "Resupplied"
+  verified_adequate: "Stock verified adequate"
+  repaired: "Refrigerator repaired"
+  replaced: "Refrigerator replaced"
+  vaccines_relocated: "Vaccines moved to a working cold store"
+  reports_recovered: "Missing reports recovered"
+  response_plan_submitted: "State response plan submitted"
+  session_plan_agreed: "Session plan agreed"
+  review_held: "Reporting review held"
+  no_action_needed: "No action needed"
+  unable_to_reach: "Unable to reach facility"
+  duplicate: "Duplicate of another case"
+
+# ---- Rules ---------------------------------------------------------------------------------
+# Conditions: {field, op, value}; op in eq ne lt le gt ge in not_in is_true is_false; combinators all / any.
+# Fields come from the facility record (mart_facility_month + mart_queue + the month's reported DHIS2
+# values + access + hidden burden), the LGA record or the state record (see `level`).
+# group: within a group the FIRST matching rule wins (rules in different groups can both fire).
+# mode: open (rule opens a case) | suggest (flagged; a person opens it) | modifier (adjusts priority).
+rules:
+  - id: R01_act_now_commodity
+    description: "Act now on credible evidence: malaria commodities (or demand surge corroborated by low stock)"
+    level: facility
+    group: resource
+    when: {all: [{field: tag, op: eq, value: ACT NOW},
+                 {field: top_domain, op: in, value: [malaria_commodity, service_pressure]}]}
+    playbook: PB_RESUPPLY
+    owner_role: lga_logistics
+    notify_roles: [fac_oic, lga_phc_coord]
+    priority: P1
+    due_days: 3
+    escalation: ESC_COMMODITY
+  - id: R02_act_now_vaccine
+    description: "Act now: vaccine stockout reported"
+    level: facility
+    group: resource
+    when: {all: [{field: tag, op: eq, value: ACT NOW},
+                 {field: top_domain, op: eq, value: vaccine_cold_chain},
+                 {field: vaccine_stockout, op: is_true}]}
+    playbook: PB_VACCINE_RESUPPLY
+    owner_role: lga_immunisation
+    notify_roles: [fac_oic, lga_phc_coord]
+    priority: P1
+    due_days: 2
+    escalation: ESC_VACCINE
+  - id: R04_verify_then_act
+    description: "Verify then act (any domain): confirm stock within days, resupply drafted in parallel"
+    level: facility
+    group: resource
+    when: {all: [{field: tag, op: eq, value: VERIFY THEN ACT}]}
+    playbook: PB_VERIFY_STOCK
+    owner_role: lga_logistics
+    notify_roles: [lga_phc_coord]
+    priority: P1
+    due_days: 3
+    escalation: ESC_COMMODITY
+    draft_resupply: true
+  - id: R03_fridge_down
+    description: "Refrigerator reported non-functional (with or without a vaccine stockout)"
+    level: facility
+    group: cold_chain
+    when: {all: [{field: fridge_nonfunctional, op: is_true}]}
+    playbook: PB_COLD_CHAIN_INSPECT
+    owner_role: lga_cold_chain
+    notify_roles: [fac_oic, lga_immunisation]
+    priority: P1
+    due_days: 2
+    escalation: ESC_COLD_CHAIN
+  - id: R05_silent_reliable
+    description: "Do not assume safe: a reliable reporter has gone silent"
+    level: facility
+    group: verification
+    when: {all: [{field: tag, op: eq, value: DO NOT ASSUME SAFE},
+                 {field: reliable_silence, op: is_true}]}
+    playbook: PB_RECOVER_REPORTS
+    owner_role: lga_mne
+    notify_roles: [lga_phc_coord]
+    priority: P2
+    due_days: 5
+    escalation: ESC_REPORTING
+  - id: R06_stale_nhlmis
+    description: "Do not assume safe: monthly report in, NHLMIS stock report overdue"
+    level: facility
+    group: verification
+    when: {all: [{field: tag, op: eq, value: DO NOT ASSUME SAFE},
+                 {field: nhlmis_stale, op: is_true},
+                 {field: report_received, op: is_true}]}
+    playbook: PB_REQUEST_LMIS_REPORT
+    owner_role: lga_logistics
+    notify_roles: []
+    priority: P2
+    due_days: 7
+    escalation: ESC_COMMODITY
+  - id: R07_dnas_other
+    description: "Do not assume safe: other reasons (missing reports, incoherent values)"
+    level: facility
+    group: verification
+    when: {all: [{field: tag, op: eq, value: DO NOT ASSUME SAFE}]}
+    playbook: PB_RECOVER_REPORTS
+    owner_role: lga_mne
+    notify_roles: []
+    priority: P3
+    due_days: 10
+    escalation: ESC_REPORTING
+  - id: R08_session_shortfall
+    description: "Routine immunisation sessions conducted below the threshold of planned"
+    level: facility
+    group: sessions
+    when: {all: [{field: report_received, op: is_true},
+                 {field: sessions_ratio, op: lt, value: 0.75}]}
+    playbook: PB_SESSION_SUPPORT
+    owner_role: lga_immunisation
+    notify_roles: []
+    priority: P3
+    due_days: 14
+    escalation: ESC_VACCINE
+  - id: R09_lga_reporting
+    description: "LGA with a large share of its PHCs in Data Verification"
+    level: lga
+    group: lga_reporting
+    when: {all: [{field: pct_verification, op: ge, value: 0.50}]}
+    playbook: PB_LGA_REPORTING_REVIEW
+    owner_role: st_mne
+    notify_roles: [lga_mne, lga_phc_coord]
+    priority: P2
+    due_days: 7
+    escalation: ESC_STATE_MNE
+  - id: R10_state_response
+    description: "State status Evidence gap or Act and verify: national asks the state for a response"
+    level: state
+    group: state_response
+    mode: suggest            # NEEDS OWNER REVIEW (D24): flagged, opened by a national persona
+    when: {all: [{field: status, op: in, value: [evidence_gap, act_and_verify]}]}
+    playbook: PB_STATE_RESPONSE
+    owner_role: st_dir_phc
+    raised_by_role: nat_director_phc
+    notify_roles: [st_exec_sec]
+    priority: P2
+    due_days: 14
+    escalation: ESC_STATE
+  - id: R11_access_isolated
+    description: "High-risk facility serving a large, isolated catchment: raise priority one level"
+    level: facility
+    mode: modifier
+    applies_to_groups: [resource, cold_chain]
+    when: {all: [{field: queue, op: eq, value: RESOURCE_ACTION},
+                 {field: access_isolated, op: is_true},
+                 {field: catchment_population, op: ge, value: 10000}]}
+    raise_priority: 1
+    note: "Isolated facility: about {catchment_population:,.0f} people; next PHC {alt_minutes:.0f} min walk"
+    note_if_missing: {alt_minutes: "Isolated facility: about {catchment_population:,.0f} people; no other PHC reachable on foot"}
+    # Thresholds: isolated = next PHC beyond the 60-min walking threshold (access.main_threshold_minutes);
+    # 10,000 people is DESIGN (A28): about the top quarter of isolated catchments.
+  - id: R12_burden_exhausted
+    description: "Do-not-assume-safe facility whose implied ACT stock is at elevated risk of running out: raise priority one level"
+    level: facility
+    mode: modifier
+    applies_to_groups: [verification]
+    when: {all: [{field: implied_stock_label, op: eq, value: elevated_risk}]}
+    # elevated_risk = P(no ACT at month end) >= 0.5 from the implied-stock model; validated at 1.4-3.1x the base (Bauchi 2.6x)
+    # stock-out rate, so a reason to look sooner, not proof of a stock-out (D63, NEEDS OWNER REVIEW).
+    raise_priority: 1
+    note: "Stock report out of date: elevated risk of no ACT (chance {act_p_out:.0%}); check first"
+
+dedupe: {key: [unit_id, playbook], cooldown_days: 14}   # no second open case; no reopen within cooldown unless priority rises
+
+# ---- Playbooks -----------------------------------------------------------------------------
+# step kinds: message (draft templates to roles), await (wait for a reply; reminder after N days),
+#             resupply (create a pre-filled resupply request), task (a person does something),
+#             resolve_on (criteria that close the case automatically).
+playbooks:
+  PB_RESUPPLY:
+    title: "Resupply malaria commodities"
+    steps:
+      - {id: confirm, title: "Confirm stock with the Officer-in-Charge", kind: message, template: T_STOCK_CHECK, to: [fac_oic], then_status: awaiting_response}
+      - {id: await_confirm, title: "Await the stock reply", kind: await, reminder_days: 2, reminder_template: T_STOCK_REMINDER}
+      - {id: request, title: "Raise a resupply request", kind: resupply, then_status: resupply_requested}
+      - {id: receipt, title: "Confirm receipt", kind: await, template: T_RECEIPT_CHECK, to: [fac_oic], reminder_days: 3}
+    on_reply: {shortage: request, adequate: resolve_verified_adequate, received: resolve_resupplied}
+    resolve_when: "Next report shows months of stock above the minimum, or the OIC confirms receipt"
+  PB_VERIFY_STOCK:
+    title: "Verify stock before acting"
+    steps:
+      - {id: check, title: "Send a structured stock-check SMS", kind: message, template: T_STOCK_CHECK, to: [fac_oic], then_status: awaiting_response}
+      - {id: await_check, title: "Await the reply (reminder after 2 days)", kind: await, reminder_days: 2, reminder_template: T_STOCK_REMINDER}
+      - {id: request, title: "Confirmed shortage: raise the resupply request", kind: resupply, then_status: resupply_requested}
+      - {id: receipt, title: "Confirm receipt", kind: await, template: T_RECEIPT_CHECK, to: [fac_oic], reminder_days: 3}
+    on_reply: {shortage: request, adequate: resolve_verified_adequate, received: resolve_resupplied}
+    resolve_when: "Shortage confirmed and resupplied, or stock verified adequate"
+  PB_VACCINE_RESUPPLY:
+    title: "Resupply vaccines from the LGA cold store"
+    steps:
+      - {id: confirm, title: "Confirm vaccine stock and fridge status", kind: message, template: T_VACCINE_CHECK, to: [fac_oic], then_status: awaiting_response}
+      - {id: await_confirm, title: "Await the reply", kind: await, reminder_days: 1, reminder_template: T_VACCINE_REMINDER}
+      - {id: request, title: "Send vaccines from the LGA cold store", kind: resupply, then_status: resupply_requested}
+      - {id: receipt, title: "Confirm receipt", kind: await, template: T_RECEIPT_CHECK, to: [fac_oic], reminder_days: 2}
+    on_reply: {shortage: request, adequate: resolve_verified_adequate, received: resolve_resupplied}
+    resolve_when: "Vaccines received, or stock verified adequate"
+  PB_COLD_CHAIN_INSPECT:
+    title: "Inspect and restore the cold chain"
+    steps:
+      - {id: alert, title: "Alert the cold chain officer; ask the OIC to protect vaccines", kind: message, template: T_COLD_CHAIN_ALERT, to: [lga_cold_chain, fac_oic], then_status: in_progress}
+      - {id: inspect, title: "Schedule and carry out the inspection", kind: task}
+      - {id: outcome, title: "Record the outcome: repaired, replaced or vaccines relocated", kind: task}
+    on_reply: {fridge_ok: resolve_repaired}
+    resolve_when: "Refrigerator reported functional, or an outcome recorded"
+  PB_RECOVER_REPORTS:
+    title: "Recover missing reports"
+    steps:
+      - {id: remind, title: "Remind the facility M&E focal person and the OIC", kind: message, template: T_REPORT_REMINDER, to: [fac_mne, fac_oic], then_status: awaiting_response}
+      - {id: await_report, title: "Await the report (3 days)", kind: await, reminder_days: 3, reminder_template: T_REPORT_REMINDER}
+      - {id: visit, title: "Ask the LGA M&E officer to visit or call", kind: message, template: T_VISIT_REQUEST, to: [lga_mne], then_status: in_progress}
+    on_reply: {report_sent: await_ingest, report_ingested: resolve_reports_recovered}
+    resolve_when: "The missing reports are received"
+  PB_REQUEST_LMIS_REPORT:
+    title: "Request the overdue NHLMIS stock report"
+    steps:
+      - {id: request_lmis, title: "Ask the OIC for the NHLMIS report and a stock count", kind: message, template: T_LMIS_REQUEST, to: [fac_oic], then_status: awaiting_response}
+      - {id: await_lmis, title: "Await the reply", kind: await, reminder_days: 3, reminder_template: T_STOCK_REMINDER}
+      - {id: request, title: "Shortage found: raise a resupply request", kind: resupply, then_status: resupply_requested}
+    on_reply: {shortage: request, adequate: resolve_verified_adequate, received: resolve_resupplied}
+    resolve_when: "Stock verified, or the NHLMIS report received"
+  PB_SESSION_SUPPORT:
+    title: "Support immunisation sessions"
+    steps:
+      - {id: notify, title: "Ask the LIO to review the session plan with the facility", kind: message, template: T_SESSION_SUPPORT, to: [lga_immunisation], then_status: in_progress}
+      - {id: agree, title: "Agree a session plan", kind: task}
+    resolve_when: "Session plan agreed"
+  PB_LGA_REPORTING_REVIEW:
+    title: "LGA reporting review"
+    steps:
+      - {id: convene, title: "Convene an LGA reporting review with the M&E officer", kind: message, template: T_LGA_REVIEW, to: [lga_mne, lga_phc_coord], then_status: in_progress}
+      - {id: hold, title: "Hold the review and record actions", kind: task}
+    resolve_when: "Review held and actions recorded"
+  PB_STATE_RESPONSE:
+    title: "State response to the national request"
+    steps:
+      - {id: request, title: "National asks the state to acknowledge", kind: message, template: T_STATE_RESPONSE, to: [st_dir_phc, st_exec_sec], then_status: awaiting_response}
+      - {id: lead, title: "State names a response lead", kind: task}
+      - {id: plan, title: "State submits a short response plan", kind: task}
+    resolve_when: "Response plan submitted"
+
+# ---- Escalation ladders --------------------------------------------------------------------
+# Each step: role + SLA in days. A case not acknowledged (or not progressed) within the SLA of its
+# current step escalates one step, notifies the next person and logs an event. The ladder stops at the top.
+escalation:
+  ESC_COMMODITY: [{role: lga_logistics, sla_days: 2}, {role: lga_phc_coord, sla_days: 2}, {role: st_lmcu, sla_days: 3}, {role: st_dir_phc, sla_days: 5}, {role: nat_logistics, sla_days: 7}]
+  ESC_VACCINE:   [{role: lga_immunisation, sla_days: 1}, {role: lga_phc_coord, sla_days: 2}, {role: st_immunisation, sla_days: 3}, {role: st_dir_phc, sla_days: 5}, {role: nat_director_phc, sla_days: 7}]
+  ESC_COLD_CHAIN: [{role: lga_cold_chain, sla_days: 1}, {role: lga_phc_coord, sla_days: 2}, {role: st_cold_chain, sla_days: 3}, {role: st_dir_phc, sla_days: 5}]
+  ESC_REPORTING: [{role: lga_mne, sla_days: 3}, {role: lga_phc_coord, sla_days: 3}, {role: st_mne, sla_days: 5}, {role: st_dir_phc, sla_days: 7}, {role: nat_mne, sla_days: 10}]
+  ESC_STATE_MNE: [{role: st_mne, sla_days: 5}, {role: st_dir_phc, sla_days: 7}, {role: nat_mne, sla_days: 10}]
+  ESC_STATE:     [{role: st_dir_phc, sla_days: 7}, {role: st_exec_sec, sla_days: 7}, {role: nat_director_phc, sla_days: 14}]
+
+# ---- Messaging -----------------------------------------------------------------------------
+messaging:
+  provider: simulated          # the ONLY allowed value in this demo (tested)
+  sms_max_chars: 160
+  max_per_person_per_day: 8    # beyond this, approved messages wait for the next day
+  digest: {immediate_priorities: [P1]}   # other notifications are bundled into one daily digest per person
+  require_approval: true       # a person approves every outbound message (tested)
+
+# ---- Live layer ----------------------------------------------------------------------------
+verification:
+  max_age_days: 14             # a field verification older than this has no effect
+  max_confidence: MODERATE     # a self-reported field count is never High confidence
+  # Severe quality rules a fresh field stock count may lift (confidence rises to at most Moderate, and only
+  # when EVERY severe reason is in this list). A missing report, silence or incoherent values are never
+  # lifted: confidence recovers only when the real report is ingested (D23).
+  liftable_rules: [FRESH_NHLMIS_STALE]
+  # Reply quantities map to NHLMIS products for months-of-stock: ACT = adult + child packs.
+  commodity_map: {ACT: [ACT_AL_ADULT, ACT_AL_CHILD], RDT: [RDT_MAL]}
+  # A Penta count at or below this many doses is a vaccine stockout (DESIGN).
+  penta_stockout_doses: 0
+
+# ---- Simulation (all labelled synthetic; A20-A25) ---------------------------------------------
+simulation:
+  clock_start: "2026-10-30"    # the day the September 2026 assessment is produced (D21)
+  delivery_failure_rate: 0.03
+  reply_delay_days: {mean: 1.5, max: 6}       # geometric-ish delay, scaled by 1 - responsiveness
+  reply_noise: 0.10            # reported quantity = truth x (1 +/- noise), rounded
+  typo_rate: 0.08              # share of replies with messy formatting
+  unparseable_rate: 0.03       # share of replies the parser should not understand
+  resupply_lead_time_days: [3, 7]
+  report_ingest_lag_days: [1, 3]
+  report_recovery_given_silenced: 0.10   # truly silenced facilities rarely recover a report on request
+  ack_probability_per_day: 0.55          # simulated officers acknowledge cases (scaled by responsiveness)
+  approve_probability_per_day: 0.0       # simulated people never approve messages: approvals are human (C7)
