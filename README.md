@@ -1,5 +1,8 @@
 # PHC Sentinel
 
+## Demo video: https://youtu.be/MPpuRHjKBnQ
+## Live Solution: https://phc-sentinel.onrender.com/
+
 > **Lite build.** All 12 states, but only the latest 8 months of history in the big tables (`database.keep_months` in `config/settings.yaml`) and
 > without the two bulk working tables the API never reads. The database is about 0.55 GB instead of 3.4 GB, so it fits free hosting. The
 > `full-version` branch keeps the full 36 months; the `lite` branch has only three states (about 0.6 GB).
