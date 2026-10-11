@@ -19,11 +19,25 @@ async function viewHeaders(): Promise<Record<string, string>> {
   }
 }
 
+/** GET with retries: a hosted API that is waking from sleep or restarting answers 502/503/504 or drops the connection for a few seconds. */
+async function getRetry(url: URL, headers: Record<string, string>): Promise<Response> {
+  const waits = [1500, 3000, 6000, 10000, 15000];
+  for (let i = 0; ; i++) {
+    try {
+      const res = await fetch(url, { cache: "no-store", headers });
+      if (![502, 503, 504].includes(res.status) || i >= waits.length) return res;
+    } catch (e) {
+      if (i >= waits.length) throw e;
+    }
+    await new Promise((r) => setTimeout(r, waits[i]));
+  }
+}
+
 export async function api<T = any>(path: string, month?: string, params?: Record<string, string | undefined>): Promise<T> {
   const url = new URL(path, API);
   if (month) url.searchParams.set("month", month);
   for (const [k, v] of Object.entries(params ?? {})) if (v != null) url.searchParams.set(k, v);
-  const res = await fetch(url, { cache: "no-store", headers: await viewHeaders() });
+  const res = await getRetry(url, await viewHeaders());
   if (!res.ok) throw new ApiError(res.status, `API ${res.status} on ${path}: ${await res.text()}`);
   return res.json();
 }
@@ -32,7 +46,7 @@ export async function api<T = any>(path: string, month?: string, params?: Record
 export async function apiOrNull<T = any>(path: string, month?: string): Promise<T | null> {
   const url = new URL(path, API);
   if (month) url.searchParams.set("month", month);
-  const res = await fetch(url, { cache: "no-store", headers: await viewHeaders() });
+  const res = await getRetry(url, await viewHeaders());
   if (res.status === 404) return null;
   if (!res.ok) throw new ApiError(res.status, `API ${res.status} on ${path}: ${await res.text()}`);
   return res.json();
