@@ -22,6 +22,7 @@ from ..engines.dqr import PRODUCT_LABEL, RULES
 from .. import viewas
 from . import actions as actions_api
 from . import cases as cases_api
+from . import direct as direct_api
 from .explain import corroborated_by
 from .thresholds import rule_severities, thresholds
 
@@ -56,6 +57,7 @@ async def view_as(request: Request, call_next):
 
 app.include_router(actions_api.router)
 app.include_router(cases_api.router)
+app.include_router(direct_api.router)
 
 MONTH = Query(None, pattern=r"^\d{4}-\d{2}$", description="Analysis month YYYY-MM; defaults to the latest")
 CODE = Path(..., description="State code from settings.yaml, e.g. bauchi")

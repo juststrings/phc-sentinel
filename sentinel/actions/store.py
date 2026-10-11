@@ -48,11 +48,15 @@ CREATE TABLE message (
   priority text NOT NULL, body text NOT NULL, chars int NOT NULL, status text NOT NULL,
   created_at date NOT NULL, approved_by text, approved_at date, scheduled_for date, sent_at date,
   delivered_at date, digest_id text, step_id text, expects text, synthetic boolean NOT NULL DEFAULT true,
+  -- direct messages (two-way): who wrote it, which facility it is about, and the thread it belongs to
+  sender_person_id text, facility_id text, thread_id text,
   -- simulation internals (never shown as data): the planned simulated reply
   planned_reply_at date, planned_reply_text text);
 CREATE INDEX ON message (state_code, status);
 CREATE INDEX ON message (case_id);
 CREATE INDEX ON message (to_person_id, status);
+CREATE INDEX ON message (thread_id);
+CREATE INDEX ON message (facility_id);
 
 CREATE TABLE inbound_response (
   response_id text PRIMARY KEY, message_id text REFERENCES message(message_id), case_id text,

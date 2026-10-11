@@ -4,6 +4,14 @@
 
 Built on top of `ui/stitch-restyle`; your pages and design are kept.
 
+- **Direct, two-way messages from a facility page.** A "People in charge" card lists who is in charge at the facility, its LGA and its state
+  (an LGA view sees the first two tiers). Tick one or more people, write or pick a quick message, and press Send (simulated; the sender pressing
+  Send is the approval). Recipients write back: the simulated recipient replies on the clock, and when you set Acting as to someone in the conversation
+  you can reply to the others. Threads show under the card and in a new "Conversations" tab on the Messages page. View-as rules apply: you can only
+  write to people inside your view, and a thread outside it is hidden and refused. New API: `GET /state/{code}/facility/{id}/people`,
+  `POST /messages/compose`, `GET /threads`. The `message` table gains `sender_person_id`, `facility_id`, `thread_id`
+  (re-run `python -m sentinel actions load`).
+
 - **View as (replaces a sign-in).** A "Viewing as" switcher at the top of the sidebar (like Power BI): National admin, State board (pick a state) or
   LGA team (pick a state, then an LGA). The choice is a cookie; every API call carries it as `X-View-As`, and the API filters rows by it
   (`sentinel/viewas.py`: path rules deny by default for state and LGA views, row clamps on directory, search, cases, messages, replies and people,

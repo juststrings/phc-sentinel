@@ -42,6 +42,12 @@ export async function sendReply(caseId: string, text: string, messageId?: string
   return run((actor) => apiSend("POST", `/cases/${caseId}/reply`, { actor_person_id: actor, text, message_id: messageId }));
 }
 
+export async function sendDirect(toPersonIds: string[], text: string, opts: { facilityId?: string; threadId?: string } = {}): Promise<Result> {
+  return run((actor) => apiSend("POST", "/messages/compose", {
+    actor_person_id: actor, to_person_ids: toPersonIds, text, facility_id: opts.facilityId, thread_id: opts.threadId,
+  }));
+}
+
 export async function openFacilityCase(code: string, facilityId: string, playbook?: string, ruleId?: string): Promise<Result> {
   return run((actor) => apiSend("POST", `/state/${code}/facility/${facilityId}/cases`, { actor_person_id: actor, playbook, rule_id: ruleId }));
 }

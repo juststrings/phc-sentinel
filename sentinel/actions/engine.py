@@ -102,7 +102,10 @@ def tick(conn) -> dict:
     # 3. Simulated replies that are due.
     for m in svc.rows(conn, """SELECT * FROM message WHERE planned_reply_at <= :t AND status IN ('delivered_simulated')
                                ORDER BY planned_reply_at, message_id""", t=today):
-        svc.record_reply(conn, m, m["to_person_id"], m["planned_reply_text"], today, m["case_id"], synthetic=True)
+        if m["kind"] == "direct":
+            svc.direct_reply(conn, m, today)
+        else:
+            svc.record_reply(conn, m, m["to_person_id"], m["planned_reply_text"], today, m["case_id"], synthetic=True)
         conn.execute(text("UPDATE message SET planned_reply_at = NULL WHERE message_id = :m"), {"m": m["message_id"]})
         stats["replies"] += 1
 

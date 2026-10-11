@@ -181,3 +181,45 @@ def test_lga_action_summary_is_its_own_lga(client):
     nat = get(client, "/state/bauchi/actions/summary", NAT, lga_id="5018").json()
     assert nat["kpis"]["open_cases"] == mine["kpis"]["open_cases"]
     assert get(client, "/state/bauchi/actions/summary", TORO, lga_id="5001").status_code == 403
+
+
+# ---- direct, two-way messages ----------------------------------------------------------------------------
+def _fac_in(client, lga_id):
+    return get(client, "/facilities", NAT, lga_id=lga_id, state="kano", page_size=1).json()["facilities"][0]["facility_id"]
+
+
+def test_facility_people_tiers_follow_the_view(client):
+    fid = _fac_in(client, "20021")
+    nat = get(client, f"/state/kano/facility/{fid}/people", NAT).json()
+    assert [t["tier"] for t in nat["tiers"]] == ["facility", "lga", "state"]
+    assert all(t["people"] for t in nat["tiers"][1:])
+    lga = get(client, f"/state/kano/facility/{fid}/people", {"X-View-As": "lga:kano:20021"}).json()
+    assert [t["tier"] for t in lga["tiers"]] == ["facility", "lga"]
+    assert get(client, f"/state/kano/facility/{fid}/people", BAUCHI).status_code == 403
+
+
+def test_direct_message_is_two_way_and_stays_in_the_view(client):
+    fid = _fac_in(client, "20021")
+    head = {"X-View-As": "state:kano"}
+    tiers = get(client, f"/state/kano/facility/{fid}/people", head).json()["tiers"]
+    me = tiers[2]["people"][0]
+    them = tiers[1]["people"][0]
+    r = client.post("/messages/compose", headers=head, json={"actor_person_id": me["person_id"], "to_person_ids": [them["person_id"]],
+                                                              "text": "Please confirm ACT stock today", "facility_id": fid})
+    assert r.status_code == 200, r.text
+    thread = r.json()["sent"][0]["thread_id"]
+    # the recipient answers in the same thread
+    r2 = client.post("/messages/compose", headers=head, json={"actor_person_id": them["person_id"], "to_person_ids": [me["person_id"]],
+                                                               "text": "On it", "thread_id": thread})
+    assert r2.status_code == 200, r2.text
+    t = [x for x in get(client, "/threads", head, facility_id=fid).json()["threads"] if x["thread_id"] == thread][0]
+    assert [m["sender_person_id"] for m in t["messages"]] == [me["person_id"], them["person_id"]]
+    assert all("Sentinel (DEMO)" in m["body"] for m in t["messages"])
+    # a state-wide Bauchi viewer cannot see, join or write into it
+    assert not [x for x in get(client, "/threads", BAUCHI).json()["threads"] if x["thread_id"] == thread]
+    assert client.post("/messages/compose", headers=BAUCHI, json={"actor_person_id": me["person_id"], "to_person_ids": [them["person_id"]],
+                                                                    "text": "x", "thread_id": thread}).status_code == 403
+    # an LGA team cannot write to the state board
+    lga = {"X-View-As": "lga:kano:20021"}
+    r3 = client.post("/messages/compose", headers=lga, json={"actor_person_id": them["person_id"], "to_person_ids": [me["person_id"]], "text": "hi"})
+    assert r3.status_code == 403

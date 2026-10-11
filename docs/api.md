@@ -19,6 +19,14 @@ Added for the interface: `GET /facilities`, `/state/{code}/facilities`, `/search
 `/meta/rules`, `/meta/thresholds`; action layer: `/state/{code}/cases`, `/cases/{id}` and its POST actions, `/messages` (+ approve, edit), `/responses` (+ review),
 `/state/{code}/actions/summary?lga_id=`, `/state/{code}/resupply-requests`, `/me/cases`, `/national/responses`, `/sim/*`, `/meta/signin`.
 
+### Direct messages (two-way, simulated)
+
+`GET /state/{code}/facility/{id}/people` returns the people in charge by tier (facility, LGA, and state for state and national views).
+`POST /messages/compose {actor_person_id, to_person_ids, text, facility_id?, thread_id?}` sends a direct message or replies in a thread
+(the sender pressing Send is the approval; the body is prefixed "Sentinel (DEMO) from <name>:" and SMS keeps the 160-character cap).
+`GET /threads?state=&lga_id=&facility_id=&person_id=` returns conversations with their messages in order. Recipients must be inside the view (403 otherwise),
+only participants can reply, and nothing is ever sent: the simulated clock (`/sim/tick`) produces the recipients' replies.
+
 ## National Command Centre (state aggregates only)
 
 These read only the precomputed `mart_state_month`, `mart_zone_month` and `mart_national_month`. No

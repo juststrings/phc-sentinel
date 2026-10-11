@@ -5,6 +5,7 @@ import { getScope } from "@/lib/scope";
 import ActingAs from "./ActingAs";
 import Approvals from "./Approvals";
 import ClockBar from "./ClockBar";
+import Conversations from "./Conversations";
 import Replies from "./Replies";
 import { Pill, TabLink } from "./ui";
 
@@ -21,12 +22,18 @@ export default async function MessagesView({ code, lgaId, sp }: { code: string; 
   const k = sum.kpis;
   const lgaName = lgaId ? (await api<any>(`/meta/lgas?state=${code}`)).lgas.find((l: any) => l.lga_id === lgaId)?.lga : undefined;
   const base = lgaId ? `/state/${code}/lga/${lgaId}/messages` : `/state/${code}/messages`;
-  const tab = ["drafts", "sent", "replies"].includes(sp.tab ?? "") ? sp.tab! : "drafts";
+  const tab = ["drafts", "sent", "replies", "chats"].includes(sp.tab ?? "") ? sp.tab! : "drafts";
   const mq = sp.month ? `&month=${sp.month}` : "";
   const href = (t: string) => `${base}?tab=${t}${mq}`;
 
   let body: React.ReactNode;
-  if (tab === "replies") {
+  let threadCount: number | null = null;
+  if (tab === "chats") {
+    const t = await api<any>(`/threads?state=${code}${lgaQ}&limit=60`);
+    threadCount = t.threads.length;
+    body = <Conversations threads={t.threads} actingId={acting.person_id} actingName={acting.name} showFacility
+                          empty="No direct conversations yet. Open a facility page and write to the people in charge." />;
+  } else if (tab === "replies") {
     const rs = sp.rstatus ?? "all";
     const r = await api<any>(`/responses?state=${code}${lgaQ}&limit=100${rs === "review" ? "&review_status=needs_review" : ""}`);
     body = (
@@ -64,6 +71,7 @@ export default async function MessagesView({ code, lgaId, sp }: { code: string; 
       </div>
       <section className="card">
         <div className="flex gap-1 overflow-x-auto border-b border-line px-2" role="tablist">
+          <TabLink href={href("chats")} on={tab === "chats"}>Conversations{threadCount != null && <> <Pill>{threadCount}</Pill></>}</TabLink>
           <TabLink href={href("drafts")} on={tab === "drafts"}>To approve <Pill t={k.awaiting_approval ? "verify" : "plain"}>{k.awaiting_approval.toLocaleString()}</Pill></TabLink>
           <TabLink href={href("sent")} on={tab === "sent"}>Sent (simulated) <Pill>{k.sent.toLocaleString()}</Pill></TabLink>
           <TabLink href={href("replies")} on={tab === "replies"}>Inbox: replies <Pill t={k.replies_to_review ? "dnas" : "plain"}>{k.replies.toLocaleString()}</Pill></TabLink>

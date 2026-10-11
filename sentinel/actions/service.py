@@ -567,6 +567,22 @@ def record_reply(conn, message: dict | None, from_pid: str, raw: str, today: dat
     return resp
 
 
+def direct_reply(conn, m: dict, today: date) -> None:
+    """The (synthetic) recipient of a direct message writes back in the same thread."""
+    mid = f"M{next_ids(conn, 'message_seq')[0]}"
+    sender = people(conn).get(m["to_person_id"])
+    target = people(conn).get(m["sender_person_id"])
+    body = f"Sentinel (DEMO) from {sender['name']}: {m['planned_reply_text']}"
+    conn.execute(text("""INSERT INTO message (message_id, case_id, to_person_id, state_code, lga_id, channel, template_id, kind, priority,
+                           body, chars, status, created_at, approved_by, approved_at, scheduled_for, sent_at, delivered_at, synthetic,
+                           sender_person_id, facility_id, thread_id)
+                         VALUES (:id, NULL, :to, :st, :lga, :ch, 'direct', 'direct', 'P3', :b, :n, 'delivered_simulated', :t, :me, :t, :t,
+                           :t, :t, true, :me, :f, :th)"""),
+                 {"id": mid, "to": target["person_id"], "st": m["state_code"], "lga": m["lga_id"], "ch": target["preferred_channel"],
+                  "b": body, "n": len(body), "t": today, "me": sender["person_id"], "f": m["facility_id"], "th": m["thread_id"]})
+    conn.execute(text("UPDATE message SET status = 'replied' WHERE message_id = :m"), {"m": m["message_id"]})
+
+
 def state_of_person(conn, pid: str) -> str:
     p = people(conn).get(pid)
     return p["state_code"] or "national"

@@ -1,8 +1,12 @@
 import Link from "next/link";
 import Chip from "@/components/Chip";
+import ActingAs from "@/components/actions/ActingAs";
 import FacilityActions from "@/components/actions/FacilityActions";
+import PeopleInCharge from "@/components/actions/PeopleInCharge";
 import { ConfidenceReasons, DemandCard, Judgement, MalariaCard, Strips, VaccineCard } from "@/components/FacilityParts";
 import Icon from "@/components/Icon";
+import { actingOptions, actingPerson } from "@/lib/acting";
+import { getScope } from "@/lib/scope";
 import { whyText } from "@/lib/queues";
 import { ApiError, DOMAIN_LABEL, api, apiOrNull, monthLabel } from "@/lib/api";
 import { CONF_LABEL, CONF_STYLE, RISK_LABEL, RISK_STYLE, type Confidence, type Risk } from "@/lib/tokens";
@@ -44,6 +48,10 @@ export default async function FacilityDetail({ params, searchParams }: {
   }
   // Action layer: live status, open cases and what to start. Not fatal if the action tables are not loaded.
   const live = await apiOrNull(`/state/${code}/facility/${id}/live`).catch(() => null);
+  const people = await apiOrNull<any>(`/state/${code}/facility/${id}/people`).catch(() => null);
+  const [acting, scope] = people ? await Promise.all([actingPerson(), getScope()]) : [null, null];
+  const actOptions = acting && scope ? await actingOptions(scope) : [];
+  const threads = people ? (await api<any>(`/threads?state=${code}&facility_id=${id}`)).threads : [];
   const f = d.facility, s = d.status, ex = d.explanation;
   const risk = RISK_STYLE[s.operational_risk as Risk], conf = CONF_STYLE[s.data_confidence as Confidence];
   const checks = [...(qd.checks ?? [])].sort((a: any, b: any) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity]);
@@ -92,6 +100,11 @@ export default async function FacilityDetail({ params, searchParams }: {
       </div>
 
       {live && <FacilityActions code={code} facilityId={id} data={live} />}
+
+      {people && acting && (
+        <PeopleInCharge facilityId={id} facilityName={d.facility.name} data={people} threads={threads} acting={acting}
+          actingPicker={<ActingAs current={acting} options={actOptions} />} />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <MalariaCard ex={ex} trends={d.trends.commodity} cfg={cfg} />

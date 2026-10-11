@@ -117,7 +117,7 @@ def authorize(scope: Scope, method: str, path: str) -> None:
         raise ScopeDenied("national views are not available to a state or LGA viewer")
     if path in ("/search", "/facilities"):
         return                                                          # rows are clamped to the viewer's state / LGA
-    if path.startswith(("/cases", "/messages", "/responses", "/me/", "/people/", "/resupply-requests/")):
+    if path.startswith(("/cases", "/messages", "/threads", "/responses", "/me/", "/people/", "/resupply-requests/")):
         return                                                          # case, message and person rows are checked by id
     m = re.match(r"^/state/([^/]+)(/.*)?$", path)
     if m and m.group(1) not in ("summary", "top"):
