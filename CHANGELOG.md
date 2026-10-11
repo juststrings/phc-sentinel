@@ -14,6 +14,13 @@ Built on top of `ui/stitch-restyle`; your pages and design are kept.
 - **Action Centre backend** brought from Sentiel-V2 (backend only, none of its pages): cases with owners, playbooks and escalation ladders
   (LGA officers, then the LGA coordinator, then state roles, then national), approval-gated simulated messages, reply parsing, resupply requests
   and a simulated clock. People, messages and replies are synthetic; providers are stubs, so nothing is ever sent.
+- **Action Centre screens (our own design, none of V2's pages).** A state board and an LGA team each get an Action Centre: KPI strip, LGA accountability table
+  (state), escalations, cases with filters and bulk acknowledge or approve, an approvals tray for drafted messages (edit, approve), an inbox of replies
+  with review, and resupply requests with CSV export. A case page shows why it exists, the playbook, messages, replies, resupply, the escalation ladder, a
+  timeline and the actions you can take as the person chosen in **Acting as** (acknowledge, assign, next step, resolve, close, note, reply as facility staff).
+  Facility pages gain **Take action** (live status, open cases, recommended playbooks). National gets **State responses** (suggested states, request a
+  response, read the state's lead and plan). **My cases** lists cases owned by or escalated to the acting person. A simulated clock moves deadlines and
+  escalations. All sending is simulated; mutations go through server actions that carry the View-as header, and the API refuses anything outside the view.
 - **Tests:** `tests/test_view_as.py` calls the real API as each viewer and checks that routes are refused and no other state's or LGA's rows appear.
 
 ## UI restyle to the Stitch design (branch `ui/stitch-restyle`)

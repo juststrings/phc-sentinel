@@ -53,9 +53,12 @@ export default function Sidebar({ scope, states, lgaName }: { scope: Scope; stat
             {sub(base, "Overview", path === base)}
             {sub(`${base}/lga`, "LGA queues", path.startsWith(`${base}/lga`))}
             {sub(`${base}/facilities`, "Facilities", path.startsWith(`${base}/facilit`))}
+            {sub(`${base}/actions`, "Action Centre", path.startsWith(`${base}/actions`))}
           </div>
         )}
         {top("/facilities", "Facilities", "list", path === "/facilities")}
+        {top("/national/responses", "State responses", "arrow", path === "/national/responses")}
+        {top("/me", "My cases", "list", path === "/me")}
         {top("/about", "Method", "rule", path === "/about")}
         <Link href="/national/briefing" className="hidden items-center gap-2 rounded px-3 py-2 text-[13px] text-ink-3 hover:bg-muted md:flex">
           <Icon name="arrow" /> Briefing mode
@@ -69,6 +72,8 @@ export default function Sidebar({ scope, states, lgaName }: { scope: Scope; stat
         {top(base, "Overview", "home", path === base)}
         {top(`${base}/lga`, "LGA queues", "list", path.startsWith(`${base}/lga`))}
         {top(`${base}/facilities`, "Facilities", "building", path.startsWith(`${base}/facilit`))}
+        {top(`${base}/actions`, "Action Centre", "arrow", path.startsWith(`${base}/actions`))}
+        {top("/me", "My cases", "list", path === "/me")}
         {top("/about", "Method", "rule", path === "/about")}
       </>
     );
@@ -79,6 +84,8 @@ export default function Sidebar({ scope, states, lgaName }: { scope: Scope; stat
       <>
         {top(home, "Clinic queues", "list", path === home)}
         {top(`${base}/facilities`, "Facilities", "building", path.startsWith(`${base}/facilit`))}
+        {top(`${home}/actions`, "Action Centre", "arrow", path.startsWith(`${home}/actions`))}
+        {top("/me", "My cases", "list", path === "/me")}
         {top("/about", "Method", "rule", path === "/about")}
       </>
     );

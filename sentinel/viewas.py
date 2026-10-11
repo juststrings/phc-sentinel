@@ -102,7 +102,7 @@ def _lga_state(lga_id: str) -> str | None:
 
 
 # What an LGA team may call under /state/{its state}/...  (lists inside are clamped to its LGA by the handlers)
-_LGA_REST = re.compile(r"^/(facilities|cases|people|geo/facilities|geo/lgas)$")
+_LGA_REST = re.compile(r"^/(facilities|cases|people|geo/facilities|geo/lgas|actions/summary)$")
 
 
 def authorize(scope: Scope, method: str, path: str) -> None:

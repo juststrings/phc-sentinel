@@ -80,7 +80,7 @@ def test_lga_view_is_limited_to_its_lga(client):
     assert get(client, "/state/bauchi/lga/5018/queue", TORO).status_code == 200
     other = next(l["lga_id"] for l in get(client, "/state/bauchi/summary", NAT).json()["lgas"] if l["lga_id"] != "5018")
     for p in (f"/state/bauchi/lga/{other}/queue", "/state/bauchi/summary", "/state/bauchi/top",
-              "/state/bauchi/insights", "/state/bauchi/actions/summary", "/state/kano/summary", "/national/summary"):
+              "/state/bauchi/insights", "/state/kano/summary", "/national/summary"):
         assert get(client, p, TORO).status_code == 403, p
 
 
@@ -170,3 +170,14 @@ def test_no_other_state_appears_anywhere_in_a_state_viewers_responses(client):
         assert r.status_code == 200, p
         seen |= state_codes_in(r.json())
     assert seen <= {"bauchi"}, seen
+
+
+def test_lga_action_summary_is_its_own_lga(client):
+    state = get(client, "/state/bauchi/actions/summary", BAUCHI).json()
+    mine = get(client, "/state/bauchi/actions/summary", TORO).json()
+    assert mine["lga_id"] == "5018"
+    assert {l["lga_id"] for l in mine["lgas"]} <= {"5018"}
+    assert 0 < mine["kpis"]["open_cases"] < state["kpis"]["open_cases"]
+    nat = get(client, "/state/bauchi/actions/summary", NAT, lga_id="5018").json()
+    assert nat["kpis"]["open_cases"] == mine["kpis"]["open_cases"]
+    assert get(client, "/state/bauchi/actions/summary", TORO, lga_id="5001").status_code == 403

@@ -577,27 +577,34 @@ def _rates(r: dict) -> dict:
 
 
 @router.get("/state/{code}/actions/summary", tags=["cases"])
-def actions_summary(code: str = CODE):
-    """Action Centre KPIs and the LGA accountability table."""
+def actions_summary(code: str = CODE, lga_id: str | None = None):
+    """Action Centre KPIs and the LGA accountability table. With `lga_id` (always the case for an LGA view) every figure is that LGA's."""
     st = state_info(code)
+    _, lga_id = viewas.clamp(code, lga_id)
     clk = _clock()
-    k = _rates(one(_summary_sql("c.state_code = :s"), s=code))
-    k.update(one("""SELECT count(*) FILTER (WHERE status = 'draft') AS awaiting_approval,
+    lp = {"l": lga_id} if lga_id else {}
+    cw = "c.state_code = :s" + (" AND c.lga_id = :l" if lga_id else "")              # case_file alias c
+    mw = "state_code = :s" + (" AND lga_id = :l" if lga_id else "")                    # message
+    rw = "state_code = :s" + (" AND case_id IN (SELECT case_id FROM case_file WHERE lga_id = :l)" if lga_id else "")   # inbound_response
+    vw = "state_code = :s" + (" AND facility_id IN (SELECT facility_id FROM dim_facility WHERE lga_id = :l)" if lga_id else "")  # field_verification
+    lw = "state_code = :s" + (" AND lga_id = :l" if lga_id else "")                    # mart_facility_live, resupply_request
+    k = _rates(one(_summary_sql(cw), s=code, **lp))
+    k.update(one(f"""SELECT count(*) FILTER (WHERE status = 'draft') AS awaiting_approval,
                            count(*) FILTER (WHERE status IN ('sent_simulated','delivered_simulated','replied','failed_simulated')) AS sent,
                            count(*) FILTER (WHERE status = 'replied') AS replied,
                            count(*) FILTER (WHERE expects <> '' AND status IN ('delivered_simulated','replied')) AS delivered_expecting_reply
-                    FROM message WHERE state_code = :s""", s=code))
-    rr = one("SELECT count(*) n, count(*) FILTER (WHERE parse_status = 'unparseable') bad FROM inbound_response WHERE state_code = :s", s=code)
+                    FROM message WHERE {mw}""", s=code, **lp))
+    rr = one(f"SELECT count(*) n, count(*) FILTER (WHERE parse_status = 'unparseable') bad FROM inbound_response WHERE {rw}", s=code, **lp)
     k["replies"] = rr["n"]
     k["unparseable_rate"] = round(rr["bad"] / rr["n"], 4) if rr["n"] else None
     k["reply_rate"] = round(k["replied"] / k["delivered_expecting_reply"], 4) if k["delivered_expecting_reply"] else None
-    k["verifications"] = one("SELECT count(*) n FROM field_verification WHERE state_code = :s", s=code)["n"]
-    k["live_changed"] = one("SELECT count(*) n FROM mart_facility_live WHERE state_code = :s AND changed", s=code)["n"]
-    k["signals_cleared"] = one("""SELECT count(*) n FROM mart_facility_live WHERE state_code = :s AND changed
-                                  AND live_queue = 'MONITOR' AND baseline_queue <> 'MONITOR'""", s=code)["n"]
-    k["shortages_confirmed"] = one("""SELECT count(*) n FROM mart_facility_live WHERE state_code = :s AND live_field_driven
-                                      AND live_queue = 'RESOURCE_ACTION'""", s=code)["n"]
-    k["resupply_pending"] = one("SELECT count(*) n FROM resupply_request WHERE state_code = :s AND status = 'pending_approval'", s=code)["n"]
+    k["verifications"] = one(f"SELECT count(*) n FROM field_verification WHERE {vw}", s=code, **lp)["n"]
+    k["live_changed"] = one(f"SELECT count(*) n FROM mart_facility_live WHERE {lw} AND changed", s=code, **lp)["n"]
+    k["signals_cleared"] = one(f"""SELECT count(*) n FROM mart_facility_live WHERE {lw} AND changed
+                                  AND live_queue = 'MONITOR' AND baseline_queue <> 'MONITOR'""", s=code, **lp)["n"]
+    k["shortages_confirmed"] = one(f"""SELECT count(*) n FROM mart_facility_live WHERE {lw} AND live_field_driven
+                                      AND live_queue = 'RESOURCE_ACTION'""", s=code, **lp)["n"]
+    k["resupply_pending"] = one(f"SELECT count(*) n FROM resupply_request WHERE {lw} AND status = 'pending_approval'", s=code, **lp)["n"]
     lgas = q(f"""
         SELECT c.lga_id, max(COALESCE(f.lga, c.evidence_snapshot->>'lga')) AS lga,
                count(*) FILTER (WHERE {OPEN}) AS open_cases,
@@ -609,10 +616,10 @@ def actions_summary(code: str = CODE):
                count(*) FILTER (WHERE c.status = 'resolved' AND c.resolved_at <= c.due_at) AS resolved_in_sla,
                percentile_cont(0.5) WITHIN GROUP (ORDER BY (c.acknowledged_at - c.opened_at)) AS median_days_to_ack
         FROM case_file c LEFT JOIN dim_facility f ON f.facility_id = c.facility_id
-        WHERE c.state_code = :s AND c.lga_id IS NOT NULL GROUP BY c.lga_id""", s=code)
+        WHERE {cw} AND c.lga_id IS NOT NULL GROUP BY c.lga_id""", s=code, **lp)
     coord = {r["lga_id"]: r for r in q("""SELECT lga_id, person_id, name FROM dim_person WHERE state_code = :s AND role_code = 'lga_phc_coord'""", s=code)}
-    cleared = {r["lga_id"]: r["n"] for r in q("""SELECT lga_id, count(*) n FROM mart_facility_live WHERE state_code = :s AND changed
-                                                 AND live_queue = 'MONITOR' AND baseline_queue <> 'MONITOR' GROUP BY 1""", s=code)}
+    cleared = {r["lga_id"]: r["n"] for r in q(f"""SELECT lga_id, count(*) n FROM mart_facility_live WHERE {lw} AND changed
+                                                 AND live_queue = 'MONITOR' AND baseline_queue <> 'MONITOR' GROUP BY 1""", s=code, **lp)}
     for l in lgas:
         l["signals_cleared"] = cleared.get(l["lga_id"], 0)
         l["pct_resolved"] = round(l["resolved"] / l["total_cases"], 4) if l["total_cases"] else None
@@ -620,12 +627,12 @@ def actions_summary(code: str = CODE):
         l["coordinator"] = (coord.get(l["lga_id"]) or {}).get("name")
         l["coordinator_id"] = (coord.get(l["lga_id"]) or {}).get("person_id")
     lgas.sort(key=lambda l: (-l["overdue"], -l["unacknowledged"], -l["open_cases"]))
-    by_rule = q(f"SELECT rule_id, priority, count(*) n FROM case_file c WHERE c.state_code = :s AND {OPEN} GROUP BY 1, 2 ORDER BY 1, 2", s=code)
-    by_status = q("SELECT status, count(*) n FROM case_file WHERE state_code = :s GROUP BY 1 ORDER BY 1", s=code)
-    esc = q(f"""SELECT {CASE_COLS} {CASE_FROM} WHERE c.state_code = :s AND {OPEN} AND c.escalation_level > 0
-                ORDER BY c.escalation_level DESC, c.priority, c.due_at, c.case_id LIMIT 10""", s=code)
+    by_rule = q(f"SELECT rule_id, priority, count(*) n FROM case_file c WHERE {cw} AND {OPEN} GROUP BY 1, 2 ORDER BY 1, 2", s=code, **lp)
+    by_status = q(f"SELECT status, count(*) n FROM case_file c WHERE {cw} GROUP BY 1 ORDER BY 1", s=code, **lp)
+    esc = q(f"""SELECT {CASE_COLS} {CASE_FROM} WHERE {cw} AND {OPEN} AND c.escalation_level > 0
+                ORDER BY c.escalation_level DESC, c.priority, c.due_at, c.case_id LIMIT 10""", s=code, **lp)
     rules = {r["id"]: r["description"] for r in actions_cfg()["rules"]}
-    return {"state": st, "clock": clk, "kpis": k, "lgas": lgas, "by_rule": by_rule, "by_status": by_status,
+    return {"state": st, "lga_id": lga_id, "clock": clk, "kpis": k, "lgas": lgas, "by_rule": by_rule, "by_status": by_status,
             "escalations": esc, "rules": rules, "synthetic": True}
 
 

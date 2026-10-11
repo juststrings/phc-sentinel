@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Chip from "@/components/Chip";
+import FacilityActions from "@/components/actions/FacilityActions";
 import { ConfidenceReasons, DemandCard, Judgement, MalariaCard, Strips, VaccineCard } from "@/components/FacilityParts";
 import Icon from "@/components/Icon";
 import { whyText } from "@/lib/queues";
-import { ApiError, DOMAIN_LABEL, api, monthLabel } from "@/lib/api";
+import { ApiError, DOMAIN_LABEL, api, apiOrNull, monthLabel } from "@/lib/api";
 import { CONF_LABEL, CONF_STYLE, RISK_LABEL, RISK_STYLE, type Confidence, type Risk } from "@/lib/tokens";
 
 /** A registry field is shown only when it holds a real value: not empty, null or "Unknown". */
@@ -41,6 +42,8 @@ export default async function FacilityDetail({ params, searchParams }: {
     }
     throw e;
   }
+  // Action layer: live status, open cases and what to start. Not fatal if the action tables are not loaded.
+  const live = await apiOrNull(`/state/${code}/facility/${id}/live`).catch(() => null);
   const f = d.facility, s = d.status, ex = d.explanation;
   const risk = RISK_STYLE[s.operational_risk as Risk], conf = CONF_STYLE[s.data_confidence as Confidence];
   const checks = [...(qd.checks ?? [])].sort((a: any, b: any) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity]);
@@ -87,6 +90,8 @@ export default async function FacilityDetail({ params, searchParams }: {
           <p className="text-[15px] font-medium leading-6 text-ink">{s.next_action}</p>
         </section>
       </div>
+
+      {live && <FacilityActions code={code} facilityId={id} data={live} />}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <MalariaCard ex={ex} trends={d.trends.commodity} cfg={cfg} />
