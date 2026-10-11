@@ -15,37 +15,49 @@ import time
 import pandas as pd
 from sqlalchemy import create_engine, text
 
-from .config import NATIONAL_DIR, RAW_DIR, StatePaths, states
+from .config import NATIONAL_DIR, RAW_DIR, StatePaths, settings, states
 
 DEFAULT_URL = "postgresql+psycopg://sentinel:sentinel@localhost:5433/sentinel"
 
 # Per-state tables: name -> (sub-directory, file).
 STATE_TABLES = {
     "dim_facility": ("staging", "dim_facility.parquet"),
-    "stg_dhis2_values": ("staging", "stg_dhis2_values.parquet"),
     "fact_dhis2_monthly": ("staging", "fact_dhis2_monthly.parquet"),
     "fact_nhlmis_bimonthly": ("staging", "fact_nhlmis_bimonthly.parquet"),
     "fact_quality_flags": ("marts", "fact_quality_flags.parquet"),
-    "fact_domain_results": ("marts", "fact_domain_results.parquet"),
     "mart_facility_month": ("marts", "mart_facility_month.parquet"),
     "mart_queue": ("marts", "mart_queue.parquet"),
     "mart_commodity_month": ("marts", "mart_commodity_month.parquet"),
     "mart_service_baseline": ("marts", "mart_service_baseline.parquet"),
     "mart_lga_month": ("marts", "mart_lga_month.parquet"),
 }
+# Lite build: keep only the most recent months in the big tables (settings: database.keep_months; unset = all history).
+MONTH_COL = {"fact_dhis2_monthly": "period", "fact_nhlmis_bimonthly": "period_start", "fact_quality_flags": "analysis_month",
+             "mart_facility_month": "analysis_month", "mart_queue": "analysis_month", "mart_commodity_month": "analysis_month",
+             "mart_service_baseline": "analysis_month", "mart_lga_month": "analysis_month"}
+
+
+def _recent(df: pd.DataFrame, table: str) -> pd.DataFrame:
+    keep = (settings().get("database") or {}).get("keep_months")
+    col = MONTH_COL.get(table)
+    if not keep or col is None or col not in df.columns:
+        return df
+    key = df[col].astype(str).str.replace("-", "", regex=False).str[:6]
+    latest = pd.Period(key.max(), "M")
+    return df[key >= str(latest - (int(keep) - 1)).replace("-", "")]
+
+
 NATIONAL_TABLES = ["mart_state_month", "mart_zone_month", "mart_national_month"]
-JSONB = {"fact_domain_results": ["evidence"], "mart_queue": ["explanation"], "mart_facility_month": ["confidence_reasons"]}
+JSONB = {"mart_queue": ["explanation"], "mart_facility_month": ["confidence_reasons"]}
 
 # Every table is labelled real / synthetic mirror / derived (proposal §6.5).
 DATA_LABELS = [
     ("dim_facility", "real", "GRID3 Nigeria Health Facilities v3.0 (CC BY 4.0); DHIS2/LMIS linkage keys are synthetic"),
     ("dim_lga", "real", "GRID3 LGA boundaries"),
     ("dim_state_geo", "real", "GRID3 state boundaries (all 36 states + FCT), simplified for the national map"),
-    ("stg_dhis2_values", "synthetic", "Simulated DHIS2 data value set export"),
     ("fact_dhis2_monthly", "synthetic", "Simulated monthly NHMIS / RI reports, read through the DHIS2 adapter"),
     ("fact_nhlmis_bimonthly", "synthetic", "Simulated NHLMIS bimonthly facility stock reports"),
     ("fact_quality_flags", "derived", "WHO-aligned DQR rule results"),
-    ("fact_domain_results", "derived", "Commodity, vaccine and service-pressure domain severities"),
     ("mart_facility_month", "derived", "Operational risk, data confidence and queue per facility-month"),
     ("mart_queue", "derived", "Ranked action and verification queues with explanations"),
     ("mart_commodity_month", "derived", "Latest NHLMIS record per commodity at each analysis date"),
@@ -106,7 +118,6 @@ def post_load(conn) -> None:
         CREATE INDEX ON dim_facility USING gist (geom);
         CREATE INDEX ON dim_facility (state_code, lga_id);
         CREATE INDEX ON fact_quality_flags (facility_id, analysis_month);
-        CREATE INDEX ON fact_domain_results (facility_id, analysis_month);
         CREATE UNIQUE INDEX ON mart_facility_month (facility_id, analysis_month);
         CREATE INDEX ON mart_facility_month (state_code, analysis_month, lga_id);
         CREATE UNIQUE INDEX ON mart_queue (facility_id, analysis_month);
@@ -142,11 +153,11 @@ def load() -> None:
             files = [(st["code"], getattr(StatePaths(st["code"]), sub) / name) for st in states()]
             # Column types from a sample of every state, so a column that is integer in one
             # state and float (has NULLs) in another gets one compatible type.
-            sample = _prepare(pd.concat([_with_state(pd.read_parquet(f).head(500), c) for c, f in files], ignore_index=True))
+            sample = _prepare(pd.concat([_with_state(_recent(pd.read_parquet(f), table).head(500), c) for c, f in files], ignore_index=True))
             sample.head(0).to_sql(table, conn, if_exists="replace", index=False)
             cols, total = list(sample.columns), 0
             for code, f in files:
-                df = _with_state(pd.read_parquet(f), code).reindex(columns=cols)
+                df = _with_state(_recent(pd.read_parquet(f), table), code).reindex(columns=cols)
                 df = df.astype({c: t for c, t in sample.dtypes.items() if t.kind == "f" and df[c].dtype.kind in "iub"})
                 copy_df(conn, df, table, append=True)
                 total += len(df)

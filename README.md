@@ -1,5 +1,11 @@
 # PHC Sentinel
 
+> **Lite build.** All 12 states, but only the latest 13 months of history in the big tables (`database.keep_months` in `config/settings.yaml`) and
+> without the two bulk working tables the API never reads. The database is about 0.85 GB instead of 3.4 GB, so it fits free hosting. The
+> `full-version` branch keeps the full 36 months; the `lite` branch has only three states (about 0.6 GB).
+> To rebuild: `python -m sentinel load-db && python -m sentinel actions load` (needs the pipeline output in `data/`).
+
+
 *See risk before it becomes a shortage.* Young Data Professionals Datathon 2026, Track 01: Health.
 
 PHC Sentinel is an early-warning tool for primary health care. It turns imperfect routine PHC data into two

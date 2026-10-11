@@ -13,6 +13,10 @@
 # `lga_aliases`: facility-layer LGA spelling -> boundary-layer spelling (normalised keys).
 # `sim`: per-state simulator overrides of simulator.state_defaults (labelled, see
 # docs/assumptions.md A13-A16).
+# LITE BUILD: the big tables keep only the latest 13 months (a year of history plus the month before) so the database fits free hosting.
+database:
+  keep_months: 13
+
 default_state: bauchi
 zones: [North West, North East, North Central, South West, South East, South South]
 states:

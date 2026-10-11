@@ -1,5 +1,9 @@
 # Changelog
 
+## Lite build, 12 states (branch `lite-12`, deployed as `main`)
+
+All 12 states with the latest 13 months in the big tables and no `stg_dhis2_values` / `fact_domain_results` tables: database 0.85 GB instead of 3.4 GB. `full-version` keeps all 36 months; `lite` has three states.
+
 ## Portals, View-as filter and the Action Centre (branch `feat/portals-actions`)
 
 Built on top of `ui/stitch-restyle`; your pages and design are kept.
