@@ -1,3 +1,4 @@
+import { getScope } from "@/lib/scope";
 import Icon from "@/components/Icon";
 import { QUEUE_CLASS, queueStyle } from "@/lib/tokens";
 import type { Metadata } from "next";
@@ -36,9 +37,12 @@ function QueueCard({ tag, blurb }: { tag: string; blurb: string }) {
 }
 
 export default async function Method() {
+  const scope = await getScope();
   const [labels, cfg, rules, th, st] = await Promise.all([
-    api("/meta/data-labels"), api("/meta/settings"), api("/meta/rules"), api("/meta/thresholds"), api("/national/states"),
+    api("/meta/data-labels"), api("/meta/settings"), api("/meta/rules"), api("/meta/thresholds"),
+    scope.level === "national" ? api("/national/states") : Promise.resolve(null),     // state-wide figures are National-only
   ]);
+  const nStates = st?.states?.length ?? cfg.settings.states?.length;
   const s = cfg.settings;
   const families = [...new Set<string>(rules.rules.map((r: any) => r.family))];
 
@@ -192,11 +196,11 @@ export default async function Method() {
 
         <section className="space-y-3">
           <p className="max-w-2xl text-[13px] text-ink-2">
-            Coverage is {st.states.length} states, two per geopolitical zone. Facility lists are GRID3 Health Facilities v3.0, filtered to public
+            Coverage is {nStates ?? "several"} states, two per geopolitical zone. Facility lists are GRID3 Health Facilities v3.0, filtered to public
             primary facilities. Lagos, Anambra, Rivers and Cross River are not in GRID3 v3.0, so same-zone states stand in: Ogun for Lagos, Abia for
             Anambra, and Delta and Bayelsa for Rivers and Cross River.
           </p>
-          <div className="card overflow-x-auto">
+          {st ? <div className="card overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="th border-b border-line text-left">
@@ -217,7 +221,7 @@ export default async function Method() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </div> : <p className="text-[12px] text-ink-3">The per-state coverage table is shown in the National view.</p>}
           <p className="max-w-2xl text-[12px] text-ink-3">
             Each point is checked against its own LGA polygon. Outside it but within {s.geography.near_boundary_km} km is <strong>Near boundary</strong> and
             stays on the map; further away is <strong>Location unverified</strong>: the facility stays in every queue but is not drawn on the map.
