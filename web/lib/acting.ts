@@ -52,5 +52,5 @@ export async function actingOptions(scope: Scope): Promise<Person[]> {
   else if (scope.level === "state") rest = (await api<any>(`/meta/personas?state=${scope.state}`)).personas;
   else rest = (await api<any>(`/state/${scope.state}/people?lga_id=${scope.lga}&limit=40`)).people;
   const seen = new Set([lead.person_id]);
-  return [lead, ...rest.filter((p) => !seen.has(p.person_id) && personInScope(p, scope))];
+  return [lead, ...rest.filter((p) => personInScope(p, scope) && !seen.has(p.person_id) && (seen.add(p.person_id), true))];
 }
