@@ -55,3 +55,13 @@ settings entry with a basis tag (POLICY, WHO-DQR, STAT or DESIGN) in a later pas
   idea) and `unverified` (`coord_status = 'location_unverified'`, more than `geography.near_boundary_km` outside the facility's own
   LGA, D11), plus `near_boundary`. The state map note uses the first; the facilities directory flag uses the second. They are
   different definitions and are not substituted for each other.
+
+## View-as scope (the row-level filter)
+
+| # | Question | Decision | Why | Where |
+|---|---|---|---|---|
+| V1 | How are national, state and LGA separated without a login? | Like Power BI's "View as": the web app sends `X-View-As: national | state:<code> | lga:<code>:<lga_id>` with every API call and the API enforces it. The choice is made in the browser, so this is demo-grade separation; a pilot replaces `viewas.parse()` with a verified identity and keeps the rules. | A demo needs to switch viewpoint in one click; real accounts add nothing to what is being shown. | `sentinel/viewas.py`, middleware in `sentinel/api/main.py` |
+| V2 | What stops a forgotten filter leaking numbers? | Two layers: a path check for every request (deny by default for state and LGA views) and row clamps inside every handler that lists or fetches rows by id (facility directory, search, cases, messages, replies, people). A request with no header gets 401; `/health`, `/meta/*` and the clock stay open. | Aderoju's API checked scope only on writes; any read endpoint served any state. | `authorize()`, `clamp()`, `check_case()`, `check_person()` |
+| V3 | What does each view see? | National: everything. State board: its state and its LGAs. LGA team: its LGA and its clinics; state-wide figures (summary, top, map, insights, resupply) return 403. | Matches the portal rules; the owner chose full access for national. | `authorize()` |
+| V4 | Who can you act as? | The person you act as (cases, approvals, replies) must sit inside the chosen view: a state board cannot act as a national officer or another state's director. | Stops a state view from approving another state's messages. | `check_persona()` via `actions/scope.persona()` |
+| V5 | How is it tested? | `tests/test_view_as.py` calls the real API as each kind of viewer and asserts routes are refused and no row from another state or LGA appears in lists, search, cases, messages, replies or people. | | `tests/test_view_as.py` |

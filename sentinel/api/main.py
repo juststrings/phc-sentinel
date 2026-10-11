@@ -10,7 +10,8 @@ import json
 from functools import lru_cache
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Path, Query, Response
+from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
@@ -18,6 +19,7 @@ from sqlalchemy import text
 from ..config import mapping, settings, states
 from ..db import engine
 from ..engines.dqr import PRODUCT_LABEL, RULES
+from .. import viewas
 from . import actions as actions_api
 from . import cases as cases_api
 from .explain import corroborated_by
@@ -28,6 +30,30 @@ app = FastAPI(title="PHC Sentinel API", version="0.2.0",
                           "roll-up. Facility list and boundaries are real (GRID3); all operational data are SIMULATED.")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+@app.middleware("http")
+async def view_as(request: Request, call_next):
+    """Apply the 'View as' scope (see sentinel/viewas.py) to every request before any handler runs."""
+    if request.method == "OPTIONS":
+        return await call_next(request)
+    path = request.url.path
+    try:
+        scope = viewas.parse(request.headers.get("x-view-as") or viewas.DEFAULT_HEADER)
+        if scope is None:
+            if path in viewas.OPEN_EXACT or path.startswith(viewas.OPEN_PREFIX):
+                return await call_next(request)
+            return JSONResponse({"detail": "No view selected: send X-View-As (national, state:<code> or lga:<code>:<lga_id>)"}, status_code=401)
+        viewas.authorize(scope, request.method, path)
+    except HTTPException as e:
+        return JSONResponse({"detail": e.detail}, status_code=e.status_code)
+    token = viewas.set_current(scope)
+    try:
+        return await call_next(request)
+    finally:
+        viewas.reset_current(token)
+
+
 app.include_router(actions_api.router)
 app.include_router(cases_api.router)
 
@@ -285,6 +311,7 @@ def facility_directory(state: str | None, month: str | None, text_q: str | None 
                        unverified: bool = False, sort: str = "name", dir: str = "asc", page: int = 1,
                        page_size: int = 25) -> dict:
     """PHC directory with its status for the month, for one state or (state=None) all. Filters and sort are whitelisted."""
+    state, lga_id = viewas.clamp(state, lga_id)          # a state or LGA view only ever gets its own rows
     m = resolve_month(month)
     if sort not in FACILITY_SORTS:
         raise HTTPException(422, f"sort must be one of {sorted(FACILITY_SORTS)}")
@@ -384,6 +411,7 @@ def geo_lgas(code: str = CODE, month: str | None = MONTH):
 def geo_facilities(code: str = CODE, month: str | None = MONTH, lga_id: str | None = None):
     """Facilities drawn on the map. "Location unverified" points are left off (they stay in every queue)."""
     state_info(code)
+    _, lga_id = viewas.clamp(code, lga_id)
     m = resolve_month(month)
     rows = q("""SELECT f.facility_id, f.name, f.lga_id, f.longitude, f.latitude, f.coord_status, q.queue, q.tag
                 FROM dim_facility f JOIN mart_queue q ON q.facility_id = f.facility_id AND q.analysis_month = :m

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Path, Query
 
+from .. import viewas
 from ..config import actions_cfg, states
 from .common import one, q, state_info
 
@@ -30,6 +31,7 @@ def state_people(code: str = CODE, role: str | None = None, lga_id: str | None =
                  q_: str | None = Query(None, alias="q"), limit: int = Query(200, le=2000), offset: int = 0):
     """Synthetic directory for a state. Filter by role, LGA, level or a name search."""
     state_info(code)
+    _, lga_id = viewas.clamp(code, lga_id)
     where = ["p.state_code = :s"]
     params: dict = {"s": code, "n": limit, "o": offset}
     if role:
@@ -81,6 +83,7 @@ def person(person_id: str):
     p = one(f"SELECT {PERSON_COLS} FROM dim_person p JOIN dim_role r USING (role_code) WHERE p.person_id = :p", p=person_id)
     if p is None:
         raise HTTPException(404, f"unknown person {person_id}")
+    viewas.check_person(p)
     cases = q("""SELECT case_id, case_ref, level, facility_id, rule_id, playbook_id, priority, status, due_at,
                         escalation_level, owner_person_id = :p AS is_owner
                  FROM case_file WHERE (owner_person_id = :p OR escalated_to_person_id = :p)
@@ -95,6 +98,7 @@ def personas(state: str | None = None):
     one LGA PHC Coordinator and one facility OIC (the first in the demo LGA when a demo is seeded)."""
     out = q("""SELECT p.person_id, p.name, p.role_code, r.title AS role_title, p.level, p.state_code, p.lga, p.facility
                FROM dim_person p JOIN dim_role r USING (role_code) WHERE p.level = 'national' ORDER BY p.role_code""")
+    state, _ = viewas.clamp(state, None)
     codes = [state] if state else [s["code"] for s in states()]
     for c in codes:
         out += q("""(SELECT p.person_id, p.name, p.role_code, r.title AS role_title, p.level, p.state_code, p.lga, p.facility
@@ -105,4 +109,7 @@ def personas(state: str | None = None):
                      FROM dim_person p JOIN dim_role r USING (role_code)
                      LEFT JOIN (SELECT lga_id, count(*) n FROM case_file WHERE demo GROUP BY lga_id) d USING (lga_id)
                      WHERE p.state_code = :s AND p.role_code = 'lga_phc_coord' ORDER BY d.n DESC NULLS LAST, p.lga LIMIT 1)""", s=c)
+    sc = viewas.current()
+    if sc is not None and sc.level != "national":          # national officers are not offered to a state or LGA view
+        out = [r for r in out if r["level"] != "national"]
     return {"personas": out, "synthetic": True}

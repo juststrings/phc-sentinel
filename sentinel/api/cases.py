@@ -11,6 +11,7 @@ import io
 from fastapi import APIRouter, Body, HTTPException, Path, Query, Response
 from pydantic import BaseModel, Field
 
+from .. import viewas
 from ..actions import scope, service as svc
 from ..actions.service import ActionError
 from ..config import actions_cfg, states
@@ -126,6 +127,7 @@ def state_cases(code: str = CODE, status: str | None = None, priority: str | Non
                 limit: int = Query(100, le=1000), offset: int = 0):
     """Case board for a state. `sort=impact` orders by priority, then isolated PHCs first, then catchment population (access layer)."""
     state_info(code)
+    _, lga_id = viewas.clamp(code, lga_id)          # an LGA view sees only its own LGA's cases
     clk = _clock()
     w, p = ["c.state_code = :s"], {"s": code, "n": limit, "o": offset}
     if open_only and not status:
@@ -170,6 +172,7 @@ def case_detail(case_id: str):
                 {CASE_FROM} LEFT JOIN dim_person rp ON rp.person_id = c.raised_by_person_id WHERE c.case_id = :c""", c=case_id)
     if c is None:
         raise HTTPException(404, f"unknown case {case_id}")
+    viewas.check_case(c)
     cfg = actions_cfg()
     book = cfg["playbooks"][c["playbook_id"]]
     events = q("""SELECT e.event_id, e.at, e.actor_person_id, COALESCE(p.name, e.actor) AS actor, e.event_type,
@@ -375,6 +378,7 @@ def messages(state: str | None = None, status: str | None = None, lga_id: str | 
              kind: str | None = None, priority: str | None = None, to_person_id: str | None = None,
              limit: int = Query(100, le=1000), offset: int = 0):
     """Outbox / approval tray. Every message is SIMULATED and never sent."""
+    state, lga_id = viewas.clamp(state, lga_id)
     w, p = ["TRUE"], {"n": limit, "o": offset}
     if state:
         w.append("m.state_code = :s"); p["s"] = state
@@ -438,6 +442,7 @@ def edit(message_id: str, body: EditBody):
 @router.get("/responses", tags=["messages"])
 def responses(state: str | None = None, lga_id: str | None = None, parse_status: str | None = None,
               review_status: str | None = None, limit: int = Query(100, le=1000)):
+    state, lga_id = viewas.clamp(state, lga_id)
     w, p = ["TRUE"], {"n": limit}
     if state:
         w.append("r.state_code = :s"); p["s"] = state

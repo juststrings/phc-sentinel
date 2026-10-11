@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 
+from .. import viewas
 from .service import ActionError, people
 
 
@@ -23,9 +24,11 @@ def persona(actor_person_id: str | None) -> dict:
     if not actor_person_id:
         raise HTTPException(422, "actor_person_id is required: choose who you are acting as")
     try:
-        return people().get(actor_person_id)
+        p = people().get(actor_person_id)
     except ActionError:
         raise HTTPException(404, f"unknown persona {actor_person_id}") from None
+    viewas.check_persona(p)          # you can only act as someone inside the view you chose
+    return p
 
 
 def can_act_on_case(p: dict, case: dict) -> bool:
