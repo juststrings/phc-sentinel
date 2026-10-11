@@ -9,15 +9,13 @@ from sentinel import config
 from sentinel.simulator.truth import facility_attributes
 
 
-def test_twelve_states_two_per_zone():
+def test_configured_states_are_distinct_and_in_known_zones():
     s = config.settings()
     st = config.states()
-    assert len(st) == 12
-    assert {x["zone"] for x in st} == set(s["zones"])
-    for z in s["zones"]:
-        assert sum(x["zone"] == z for x in st) == 2, z
-    assert len({x["code"] for x in st}) == 12
-    assert len({x["grid3_code"] for x in st}) == 12
+    assert len(st) >= 3                                     # lite build has 3 states; the full version has 12 (two per zone)
+    assert {x["zone"] for x in st} <= set(s["zones"])
+    assert len({x["code"] for x in st}) == len(st)
+    assert len({x["grid3_code"] for x in st}) == len(st)
     assert s["default_state"] in config.state_codes()
 
 
@@ -30,12 +28,12 @@ def test_state_parameters_resolve_over_defaults():
         assert 0 < lo < hi < 1
     # Bauchi keeps the original calibration exactly (regression guarantee).
     assert config.state("bauchi")["sim"] == defaults
-    assert len({st["sim"]["seed_offset"] for st in config.states()}) == 12
+    assert len({st["sim"]["seed_offset"] for st in config.states()}) == len(config.states())
 
 
 def test_each_state_has_its_own_paths():
     roots = {config.StatePaths(c).root for c in config.state_codes()}
-    assert len(roots) == 12
+    assert len(roots) == len(config.state_codes())
     p = config.StatePaths("kano")
     assert p.exports.parent == p.root and p.marts.name == "marts"
 

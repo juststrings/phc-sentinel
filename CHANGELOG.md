@@ -1,5 +1,9 @@
 # Changelog
 
+## Lite build (branch `lite`)
+
+Three states (Kano, Bauchi, Bayelsa), no `stg_dhis2_values` / `fact_domain_results` tables (the API does not read them), people directory filtered to the configured states: database 0.6 GB instead of 3.4 GB. Tests no longer assume 12 states. All 12 states stay on `full-version`.
+
 ## Portals, View-as filter and the Action Centre (branch `feat/portals-actions`)
 
 Built on top of `ui/stitch-restyle`; your pages and design are kept.

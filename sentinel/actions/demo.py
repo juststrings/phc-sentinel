@@ -48,6 +48,8 @@ def load_truth(conn) -> int:
 def load_directory_and_truth(conn) -> None:
     from .directory import load
     roles, people = load()
+    from ..config import state_codes
+    people = people[people["state_code"].isna() | people["state_code"].isin(state_codes())].reset_index(drop=True)   # lite build: configured states only
     store.load_directory(conn, roles, people)
     n = load_truth(conn)
     print(f"Loaded {len(people):,} synthetic people and simulated truth for {n:,} facilities")

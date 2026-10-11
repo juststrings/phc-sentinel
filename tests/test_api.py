@@ -51,7 +51,8 @@ def test_bauchi_through_state_and_legacy_paths(client):
 def test_national_summary_reconciles_with_states(client):
     nat = client.get("/national/summary", params={"month": "2026-09"}).json()
     sts = client.get("/national/states", params={"month": "2026-09"}).json()["states"]
-    assert len(sts) == 12 and nat["kpis"]["states"] == 12
+    from sentinel import config
+    assert len(sts) == len(config.states()) and nat["kpis"]["states"] == len(config.states())
     for key in ("facilities", "act_now", "verify_then_act", "verification", "monitor", "stale_commodity", "reports_received"):
         assert nat["kpis"][key] == sum(s[key] for s in sts), key
     for z in nat["zones"]:

@@ -70,7 +70,7 @@ def _built():
 
 def test_built_national_totals_equal_sum_of_states():
     st, zone, nat = _built()
-    assert st["state_code"].nunique() == 12
+    assert st["state_code"].nunique() == len(config.states())
     summed = st.groupby("analysis_month")[COUNTS].sum()
     pd.testing.assert_frame_equal(nat.set_index("analysis_month")[COUNTS].astype("int64"), summed.astype("int64"),
                                   check_names=False)

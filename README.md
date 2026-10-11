@@ -1,5 +1,10 @@
 # PHC Sentinel
 
+> **Lite build.** This branch (`lite`, deployed as `main` of the hosting repo) covers three states (Kano, Bauchi, Bayelsa; one per zone) so the
+> database is about 0.6 GB and fits free hosting. The `full-version` branch has all 12 states. To rebuild the lite data:
+> `python -m sentinel national && python -m sentinel load-db && python -m sentinel actions load`.
+
+
 *See risk before it becomes a shortage.* Young Data Professionals Datathon 2026, Track 01: Health.
 
 PHC Sentinel is an early-warning tool for primary health care. It turns imperfect routine PHC data into two

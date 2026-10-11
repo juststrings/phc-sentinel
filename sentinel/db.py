@@ -22,11 +22,9 @@ DEFAULT_URL = "postgresql+psycopg://sentinel:sentinel@localhost:5433/sentinel"
 # Per-state tables: name -> (sub-directory, file).
 STATE_TABLES = {
     "dim_facility": ("staging", "dim_facility.parquet"),
-    "stg_dhis2_values": ("staging", "stg_dhis2_values.parquet"),
     "fact_dhis2_monthly": ("staging", "fact_dhis2_monthly.parquet"),
     "fact_nhlmis_bimonthly": ("staging", "fact_nhlmis_bimonthly.parquet"),
     "fact_quality_flags": ("marts", "fact_quality_flags.parquet"),
-    "fact_domain_results": ("marts", "fact_domain_results.parquet"),
     "mart_facility_month": ("marts", "mart_facility_month.parquet"),
     "mart_queue": ("marts", "mart_queue.parquet"),
     "mart_commodity_month": ("marts", "mart_commodity_month.parquet"),
@@ -34,18 +32,16 @@ STATE_TABLES = {
     "mart_lga_month": ("marts", "mart_lga_month.parquet"),
 }
 NATIONAL_TABLES = ["mart_state_month", "mart_zone_month", "mart_national_month"]
-JSONB = {"fact_domain_results": ["evidence"], "mart_queue": ["explanation"], "mart_facility_month": ["confidence_reasons"]}
+JSONB = {"mart_queue": ["explanation"], "mart_facility_month": ["confidence_reasons"]}
 
 # Every table is labelled real / synthetic mirror / derived (proposal §6.5).
 DATA_LABELS = [
     ("dim_facility", "real", "GRID3 Nigeria Health Facilities v3.0 (CC BY 4.0); DHIS2/LMIS linkage keys are synthetic"),
     ("dim_lga", "real", "GRID3 LGA boundaries"),
     ("dim_state_geo", "real", "GRID3 state boundaries (all 36 states + FCT), simplified for the national map"),
-    ("stg_dhis2_values", "synthetic", "Simulated DHIS2 data value set export"),
     ("fact_dhis2_monthly", "synthetic", "Simulated monthly NHMIS / RI reports, read through the DHIS2 adapter"),
     ("fact_nhlmis_bimonthly", "synthetic", "Simulated NHLMIS bimonthly facility stock reports"),
     ("fact_quality_flags", "derived", "WHO-aligned DQR rule results"),
-    ("fact_domain_results", "derived", "Commodity, vaccine and service-pressure domain severities"),
     ("mart_facility_month", "derived", "Operational risk, data confidence and queue per facility-month"),
     ("mart_queue", "derived", "Ranked action and verification queues with explanations"),
     ("mart_commodity_month", "derived", "Latest NHLMIS record per commodity at each analysis date"),
@@ -106,7 +102,6 @@ def post_load(conn) -> None:
         CREATE INDEX ON dim_facility USING gist (geom);
         CREATE INDEX ON dim_facility (state_code, lga_id);
         CREATE INDEX ON fact_quality_flags (facility_id, analysis_month);
-        CREATE INDEX ON fact_domain_results (facility_id, analysis_month);
         CREATE UNIQUE INDEX ON mart_facility_month (facility_id, analysis_month);
         CREATE INDEX ON mart_facility_month (state_code, analysis_month, lga_id);
         CREATE UNIQUE INDEX ON mart_queue (facility_id, analysis_month);
