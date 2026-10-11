@@ -4,6 +4,7 @@ import Chip from "@/components/Chip";
 import Icon from "@/components/Icon";
 import StateSelect from "@/components/StateSelect";
 import { DOMAIN_LABEL, api, apiOrNull, int, monthLabel } from "@/lib/api";
+import { getScope } from "@/lib/scope";
 import { QUEUE_BY_TAG } from "@/lib/tokens";
 
 export type SP = Record<string, string | undefined>;
@@ -30,6 +31,8 @@ export default async function FacilityDirectory({ code, sp }: { code?: string; s
   const page = Math.max(1, Number(sp.page) || 1);
   const sort = sp.sort === "state" && code ? "name" : sp.sort ?? "name";
   const dir = sp.dir === "desc" ? "desc" : "asc";
+  const scope = await getScope();
+  const lgaView = scope.level === "lga";          // an LGA team gets only its own rows: no state-wide summary or counts
   const states = (await api("/meta/states")).states as { code: string; name: string; zone: string }[];
   const eff = code ?? (states.some((s) => s.code === sp.state) ? sp.state : undefined);   // the state in scope, if any
 
@@ -39,11 +42,11 @@ export default async function FacilityDirectory({ code, sp }: { code?: string; s
   if (sp.stale) qs.set("stale", "true");
   if (sp.coords) qs.set("unverified", "true");
 
-  const summary = eff ? await apiOrNull(`/state/${eff}/summary`, month) : null;
-  if (code && !summary) notFound();
+  const summary = eff && !lgaView ? await apiOrNull(`/state/${eff}/summary`, month) : null;
+  if (code && !summary && !lgaView) notFound();
   const [res, coords, cfg] = await Promise.all([
     api(`/facilities?${qs}`, month),
-    eff ? api(`/state/${eff}/coords`) : Promise.resolve(null),
+    eff && !lgaView ? api(`/state/${eff}/coords`) : Promise.resolve(null),
     api("/meta/settings"),
   ]);
   const pages = Math.max(1, Math.ceil(res.total / PAGE_SIZE));
@@ -55,22 +58,22 @@ export default async function FacilityDirectory({ code, sp }: { code?: string; s
   };
   const cols = COLS.filter((c) => !c.global || !code);
   const stateName = (c: string) => states.find((s) => s.code === c)?.name ?? c;
-  const unverifiedAll = coords ? null : (await api("/national/states", month)).states.reduce((a: number, s: any) => a + s.location_unverified, 0);
+  const unverifiedAll = coords || lgaView || scope.level !== "national" ? null : (await api("/national/states", month)).states.reduce((a: number, s: any) => a + s.location_unverified, 0);
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-[24px] font-semibold leading-8 text-ink">{summary ? `${summary.state.name} facilities` : "Facilities"}</h1>
+        <h1 className="text-[24px] font-semibold leading-8 text-ink">{summary ? `${summary.state.name} facilities` : lgaView && eff ? `${stateName(eff)}: facilities in your LGA` : "Facilities"}</h1>
         <p className="text-[13px] text-ink-3">
           {summary
             ? `${int(summary.kpis.facilities)} public PHCs across ${summary.lgas.length} LGAs`
-            : `Every public PHC in the ${states.length} covered states`} · {monthLabel(month)}
+            : lgaView ? `${int(res.total)} public PHCs` : `Every public PHC in the ${states.length} covered states`} · {monthLabel(month)}
         </p>
       </div>
 
       <form method="get" className="card flex flex-wrap items-end gap-3 p-3">
         <input type="hidden" name="month" value={month} />
-        {code && <StateSelect states={states} value={code} view="facilities" />}
+        {code && scope.level === "national" && <StateSelect states={states} value={code} view="facilities" />}
         <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-[12px] text-ink-3">
           Search
           <input name="q" defaultValue={sp.q ?? ""} placeholder="Facility, ward or ID" className={`${sel} w-full`} />
@@ -125,13 +128,15 @@ export default async function FacilityDirectory({ code, sp }: { code?: string; s
         <Link href={`${base}?month=${month}`} className="pb-1.5 text-[13px] text-ink-3 hover:underline">Reset</Link>
       </form>
 
+      {!lgaView && (
       <p className="flex items-center gap-2 text-[12px] text-ink-3">
-        <Icon name="flag" size={13} />
-        {coords && summary
-          ? `${coords.unverified} PHCs have coordinates more than ${cfg.settings.geography.near_boundary_km} km outside their own LGA (${coords.outside_state} of them outside ${summary.state.name} State). `
-          : `${int(unverifiedAll)} PHCs across all states have coordinates more than ${cfg.settings.geography.near_boundary_km} km outside their own LGA. `}
-        They are flagged here and still appear in the queues.
-      </p>
+          <Icon name="flag" size={13} />
+          {coords && summary
+            ? `${coords.unverified} PHCs have coordinates more than ${cfg.settings.geography.near_boundary_km} km outside their own LGA (${coords.outside_state} of them outside ${summary.state.name} State). `
+            : `${int(unverifiedAll)} PHCs across all states have coordinates more than ${cfg.settings.geography.near_boundary_km} km outside their own LGA. `}
+          They are flagged here and still appear in the queues.
+        </p>
+      )}
 
       <section className="card">
         <div className="overflow-x-auto">

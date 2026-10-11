@@ -1,4 +1,4 @@
-import { DOMAIN_LABEL, monthLabel } from "./api";
+import { DOMAIN_LABEL, monthLabel } from "./format";
 
 /** The four queue tabs. The API groups ACT NOW and VERIFY THEN ACT together as "action"; the tag splits them. */
 export const QUEUE_TABS = [

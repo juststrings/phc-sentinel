@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import Chip from "./Chip";
 import Icon from "./Icon";
-import { DOMAIN_LABEL } from "@/lib/api";
+import { DOMAIN_LABEL } from "@/lib/format";
 import { isOverdue, lastReport, toCsv, whyText } from "@/lib/queues";
 
 const PAGE = 25;

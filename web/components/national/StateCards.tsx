@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import StatusChip from "@/components/StatusChip";
-import { int, pct } from "@/lib/api";
+import { int, pct } from "@/lib/format";
 import StateBrief from "./StateBrief";
 import StateModal, { VIEW_LABEL, viewPath, type ModalView } from "./StateModal";
 

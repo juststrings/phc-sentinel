@@ -152,6 +152,13 @@ def meta_settings():
     return {"settings": settings(), "mapping": mapping()}
 
 
+@app.get("/meta/lgas")
+def meta_lgas(state: str):
+    """LGA names for a state: what the View-as switcher offers. Names only, no figures."""
+    state_info(state)
+    return {"lgas": q("SELECT lga_id, lga FROM dim_lga WHERE state_code = :s ORDER BY lga", s=state)}
+
+
 @app.get("/meta/thresholds")
 def meta_thresholds():
     """Every threshold in config/settings.yaml with its basis tag, for the Method page."""
@@ -395,14 +402,15 @@ def state_top(code: str = CODE, month: str | None = MONTH, limit: int = Query(10
 
 
 @app.get("/state/{code}/geo/lgas")
-def geo_lgas(code: str = CODE, month: str | None = MONTH):
+def geo_lgas(code: str = CODE, month: str | None = MONTH, lga_id: str | None = None):
     state_info(code)
+    _, lga_id = viewas.clamp(code, lga_id)          # an LGA view gets only its own polygon and numbers
     m = resolve_month(month)
     rows = q("""SELECT l.lga_id, l.lga, ST_AsGeoJSON(ST_SimplifyPreserveTopology(l.geom, 0.002), 5) AS g,
                        s.facilities, s.action, s.act_now, s.verify_then_act, s.verification, s.monitor,
                        s.needs_attention, s.lga_rank, s.reporting_completeness
                 FROM dim_lga l LEFT JOIN mart_lga_month s ON s.lga_id = l.lga_id AND s.analysis_month = :m
-                WHERE l.state_code = :s""", s=code, m=m)
+                WHERE l.state_code = :s AND (CAST(:lga AS text) IS NULL OR l.lga_id = :lga)""", s=code, m=m, lga=lga_id)
     return {"type": "FeatureCollection", "features": [
         {"type": "Feature", "geometry": json.loads(r.pop("g")), "properties": r} for r in rows]}
 

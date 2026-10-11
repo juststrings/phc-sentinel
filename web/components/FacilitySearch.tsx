@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 interface Hit { facility_id: string; name: string; lga: string; ward: string; state_code: string }
 
-export default function FacilitySearch({ states }: { states: { code: string; name: string }[] }) {
+export default function FacilitySearch({ states, where = "all states" }: { states: { code: string; name: string }[]; where?: string }) {
   const router = useRouter();
   const month = useSearchParams().get("month");
   const [text, setText] = useState("");
@@ -40,7 +40,7 @@ export default function FacilitySearch({ states }: { states: { code: string; nam
       <input
         type="search"
         aria-label="Search facilities"
-        placeholder="Search facilities (all states)"
+        placeholder={`Search facilities (${where})`}
         value={text}
         onChange={(e) => { setText(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}

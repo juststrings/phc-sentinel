@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import QueueMatrix from "@/components/QueueMatrix";
 import StatusChip from "@/components/StatusChip";
-import { DOMAIN_LABEL, int, monthLabel, pct } from "@/lib/api";
+import { DOMAIN_LABEL, int, monthLabel, pct } from "@/lib/format";
 
 const short = (m: string) => {
   const [y, mo] = m.split("-").map(Number);

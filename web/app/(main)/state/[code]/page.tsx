@@ -11,6 +11,7 @@ import QueueMatrix from "@/components/QueueMatrix";
 import StateSelect from "@/components/StateSelect";
 import StatusChip from "@/components/StatusChip";
 import { api, apiOrNull, int, monthLabel, pct } from "@/lib/api";
+import { getScope } from "@/lib/scope";
 
 type P = { params: Promise<{ code: string }>; searchParams: Promise<{ month?: string }> };
 
@@ -55,6 +56,7 @@ function TopList({ title, rows, month, code }: { title: string; rows: any[]; mon
 export default async function StateOverview({ params, searchParams }: P) {
   const { code } = await params;
   const { month: m } = await searchParams;
+  const scope = await getScope();
   const meta = await api("/meta/months");
   const month = m ?? meta.latest;
   const s = await apiOrNull(`/state/${code}/summary`, month);
@@ -81,18 +83,20 @@ export default async function StateOverview({ params, searchParams }: P) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[12px] text-ink-3">
-            <Link href={`/national?month=${month}`} className="hover:underline">National</Link> / {st.name} State · {st.zone}
+            {scope.level === "national" ? <><Link href={`/national?month=${month}`} className="hover:underline">National</Link> / </> : null}{st.name} State · {st.zone}
           </p>
-          <div className="mb-2 mt-1"><StateSelect states={metaStates.states} value={code} view="overview" /></div>
+          {scope.level === "national" && <div className="mb-2 mt-1"><StateSelect states={metaStates.states} value={code} view="overview" /></div>}
           <h1 className="text-[24px] font-semibold leading-8 text-ink">{st.name}: where to act, where to verify</h1>
           <p className="flex flex-wrap items-center gap-2 text-[13px] text-ink-3">
             {int(k.facilities)} public PHCs across {s.lgas.length} LGAs · {monthLabel(month)} analysis, as of {cfg.settings.calendar.analysis_lag_days} days after month end
             <StatusChip status={k.status} />
           </p>
         </div>
-        <Link href={`/national?month=${month}&state=${code}`} className="rounded border border-line bg-card px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-muted">
-          State brief
-        </Link>
+        {scope.level === "national" && (
+          <Link href={`/national?month=${month}&state=${code}`} className="rounded border border-line bg-card px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-muted">
+            State brief
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-12">

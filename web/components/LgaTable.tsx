@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { pct } from "@/lib/api";
+import { pct } from "@/lib/format";
 import { QUEUE_CLASS, queueStyle } from "@/lib/tokens";
 
 const SEGMENTS = [

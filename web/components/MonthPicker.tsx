@@ -1,6 +1,6 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { monthLabel } from "@/lib/api";
+import { monthLabel } from "@/lib/format";
 
 export default function MonthPicker({ months, latest }: { months: string[]; latest: string }) {
   const router = useRouter();

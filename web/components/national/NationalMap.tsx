@@ -2,7 +2,7 @@
 import { useTheme } from "@/components/useTheme";
 import maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { METRICS, pct, int } from "@/lib/api";
+import { METRICS, pct, int } from "@/lib/format";
 import StatusChip from "@/components/StatusChip";
 
 /* Sequential single-hue ramp (red, as in the Stitch design), 5 classes. Light mode: light -> dark = less -> more attention.

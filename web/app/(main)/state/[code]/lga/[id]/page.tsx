@@ -6,6 +6,7 @@ import LgaSelect from "@/components/LgaSelect";
 import StateSelect from "@/components/StateSelect";
 import WorkList from "@/components/WorkList";
 import { api, apiOrNull, monthLabel, pct } from "@/lib/api";
+import { getScope } from "@/lib/scope";
 import { QUEUE_TABS, tabRows } from "@/lib/queues";
 import { QUEUE_CLASS, queueStyle } from "@/lib/tokens";
 
@@ -14,12 +15,14 @@ export default async function LgaQueues({ params, searchParams }: {
 }) {
   const { code, id } = await params;
   const { month: m, tab = "act-now" } = await searchParams;
+  const scope = await getScope();
   const meta = await api("/meta/months");
   const month = m ?? meta.latest;
   const d = await apiOrNull(`/state/${code}/lga/${id}/queue`, month);
   if (!d) notFound();
+  // An LGA team gets only its own LGA's rows: no state-wide summary, no LGA picker.
   const [meta2, summary, lgaGeo, facGeo] = await Promise.all([
-    api("/meta/states"), api(`/state/${code}/summary`, month), api(`/state/${code}/geo/lgas`, month), api(`/state/${code}/geo/facilities?lga_id=${id}`, month),
+    api("/meta/states"), scope.level === "lga" ? Promise.resolve({ lgas: [] as any[] }) : api(`/state/${code}/summary`, month), api(`/state/${code}/geo/lgas`, month), api(`/state/${code}/geo/facilities?lga_id=${id}`, month),
   ]);
   const l = d.lga;
   const active = QUEUE_TABS.find((t) => t.key === tab) ?? QUEUE_TABS[0];
@@ -32,16 +35,16 @@ export default async function LgaQueues({ params, searchParams }: {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[12px] text-ink-3"><Link href={`/national?month=${month}`} className="hover:underline">National</Link> /{" "}
-            <Link href={`/state/${code}?month=${month}`} className="hover:underline">{d.state.name}</Link> / LGA queues</p>
+          <p className="text-[12px] text-ink-3">{scope.level === "national" && <><Link href={`/national?month=${month}`} className="hover:underline">National</Link> / </>}
+            {scope.level === "lga" ? d.state.name : <Link href={`/state/${code}?month=${month}`} className="hover:underline">{d.state.name}</Link>} / LGA queues</p>
           <div className="flex flex-wrap items-end gap-3">
-            <StateSelect states={meta2.states} value={code} view="lga" />
-            <LgaSelect lgas={summary.lgas} value={id} code={code} />
-            <h1 className="sr-only">{l.lga} LGA queues</h1>
+            {scope.level === "national" && <StateSelect states={meta2.states} value={code} view="lga" />}
+            {scope.level !== "lga" && <LgaSelect lgas={summary.lgas} value={id} code={code} />}
+            <h1 className={scope.level === "lga" ? "text-[22px] font-semibold text-ink" : "sr-only"}>{scope.level === "lga" ? `${l.lga} clinics` : `${l.lga} LGA queues`}</h1>
           </div>
           <p className="mt-1 text-[13px] text-ink-3">
-            {l.facilities} PHCs · reporting {pct(l.reporting_completeness)} complete · {pct(l.on_time_rate)} on time ·
-            ranked {l.lga_rank} of {summary.lgas.length} LGAs · {monthLabel(month)}
+            {l.facilities} PHCs · reporting {pct(l.reporting_completeness)} complete · {pct(l.on_time_rate)} on time
+            {scope.level === "lga" ? "" : ` · ranked ${l.lga_rank} of ${summary.lgas.length} LGAs`} · {monthLabel(month)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

@@ -1,5 +1,21 @@
 # Changelog
 
+## Portals, View-as filter and the Action Centre (branch `feat/portals-actions`)
+
+Built on top of `ui/stitch-restyle`; your pages and design are kept.
+
+- **View as (replaces a sign-in).** A "Viewing as" switcher at the top of the sidebar (like Power BI): National admin, State board (pick a state) or
+  LGA team (pick a state, then an LGA). The choice is a cookie; every API call carries it as `X-View-As`, and the API filters rows by it
+  (`sentinel/viewas.py`: path rules deny by default for state and LGA views, row clamps on directory, search, cases, messages, replies and people,
+  and the person you act as must be inside the view). The web guard redirects out-of-scope pages home. National has full access. Demo-grade:
+  the choice is made in the browser, so this is a filter, not authentication.
+- **Navigation follows the view.** National keeps States, Facilities (all states) and the state sub-menu. A state board gets Overview, LGA queues and
+  Facilities for its own state. An LGA team gets its clinic queues and facilities, with no state-wide figures and no state or LGA pickers.
+- **Action Centre backend** brought from Sentiel-V2 (backend only, none of its pages): cases with owners, playbooks and escalation ladders
+  (LGA officers, then the LGA coordinator, then state roles, then national), approval-gated simulated messages, reply parsing, resupply requests
+  and a simulated clock. People, messages and replies are synthetic; providers are stubs, so nothing is ever sent.
+- **Tests:** `tests/test_view_as.py` calls the real API as each viewer and checks that routes are refused and no other state's or LGA's rows appear.
+
 ## UI restyle to the Stitch design (branch `ui/stitch-restyle`)
 
 The web app was restyled to match the Stitch design. Engines, thresholds, queue rules and the database schema are unchanged.

@@ -1,7 +1,9 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { homeOf, type Scope } from "@/lib/scopeCore";
 import Icon from "./Icon";
+import ViewAs from "./ViewAs";
 
 export type StateInfo = { code: string; name: string; zone: string };
 
@@ -11,41 +13,13 @@ export function useStateCode(): string | null {
   return m ? m[1] : null;
 }
 
-/** National Command Centre or any of the covered states, grouped by zone. Demo access has no login. */
-function ScopeSwitcher({ states, zones }: { states: StateInfo[]; zones: string[] }) {
-  const router = useRouter();
+/** Navigation follows the "View as" choice: National sees everything; a state board sees its state; an LGA team sees its LGA. */
+export default function Sidebar({ scope, states, lgaName }: { scope: Scope; states: StateInfo[]; lgaName?: string }) {
   const path = usePathname();
   const month = useSearchParams().get("month");
-  const code = useStateCode();
-  const value = code ? `/state/${code}` : path.startsWith("/national") ? "/national" : "";
-  return (
-    <label className="block px-3 pb-3">
-      <span className="th mb-1 block">View</span>
-      <select
-        aria-label="Choose a view"
-        value={value}
-        onChange={(e) => e.target.value && router.push(`${e.target.value}${month ? `?month=${month}` : ""}`)}
-        className="w-full rounded border border-line bg-card px-2 py-1.5 text-[13px] font-medium text-ink"
-      >
-        {!value && <option value="">Choose a view</option>}
-        <option value="/national">National Command Centre</option>
-        {zones.map((z) => (
-          <optgroup key={z} label={z}>
-            {states.filter((s) => s.zone === z).map((s) => <option key={s.code} value={`/state/${s.code}`}>{s.name}</option>)}
-          </optgroup>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-export default function Sidebar({ states, zones }: { states: StateInfo[]; zones: string[] }) {
-  const path = usePathname();
-  const month = useSearchParams().get("month");
-  const code = useStateCode();
   const q = month ? `?month=${month}` : "";
-  const base = code ? `/state/${code}` : null;
-  const stateName = code ? states.find((x) => x.code === code)?.name ?? code : null;
+  const code = useStateCode();
+
   const top = (href: string, label: string, icon: string, on: boolean) => (
     <Link
       key={href} href={`${href}${q}`} aria-current={on ? "page" : undefined}
@@ -64,14 +38,13 @@ export default function Sidebar({ states, zones }: { states: StateInfo[]; zones:
       {label}
     </Link>
   );
-  return (
-    <aside className="shell-chrome border-b border-line bg-card md:sticky md:top-[var(--banner-h,32px)] md:h-[calc(100vh-var(--banner-h,32px))] md:w-60 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r">
-      <Link href="/" className="block px-4 py-3 md:px-5 md:py-5" aria-label="PHC Sentinel home">
-        <div className="text-[16px] font-bold leading-5 text-ink">PHC Sentinel</div>
-        <div className="text-[12px] text-ink-3">Early warning for primary health care</div>
-      </Link>
-      <ScopeSwitcher states={states} zones={zones} />
-      <nav className="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:px-3" aria-label="Primary">
+
+  let links: React.ReactNode;
+  if (scope.level === "national") {
+    const base = code ? `/state/${code}` : null;
+    const stateName = code ? states.find((x) => x.code === code)?.name ?? code : null;
+    links = (
+      <>
         {top("/national", "National", "home", path === "/national")}
         {top("/states", "States", "building", path === "/states")}
         {base && stateName && (
@@ -82,19 +55,44 @@ export default function Sidebar({ states, zones }: { states: StateInfo[]; zones:
             {sub(`${base}/facilities`, "Facilities", path.startsWith(`${base}/facilit`))}
           </div>
         )}
-        {base && stateName && (
-          // Narrow screens: the nav is a single row, so the state pages sit inline after States
-          <div className="flex gap-1 md:hidden" role="group" aria-label={`${stateName} pages`}>
-            {sub(base, `${stateName}: overview`, path === base)}
-            {sub(`${base}/lga`, "LGA queues", path.startsWith(`${base}/lga`))}
-            {sub(`${base}/facilities`, "Facilities", path.startsWith(`${base}/facilit`))}
-          </div>
-        )}
         {top("/facilities", "Facilities", "list", path === "/facilities")}
         {top("/about", "Method", "rule", path === "/about")}
         <Link href="/national/briefing" className="hidden items-center gap-2 rounded px-3 py-2 text-[13px] text-ink-3 hover:bg-muted md:flex">
           <Icon name="arrow" /> Briefing mode
         </Link>
+      </>
+    );
+  } else if (scope.level === "state") {
+    const base = `/state/${scope.state}`;
+    links = (
+      <>
+        {top(base, "Overview", "home", path === base)}
+        {top(`${base}/lga`, "LGA queues", "list", path.startsWith(`${base}/lga`))}
+        {top(`${base}/facilities`, "Facilities", "building", path.startsWith(`${base}/facilit`))}
+        {top("/about", "Method", "rule", path === "/about")}
+      </>
+    );
+  } else {
+    const base = `/state/${scope.state}`;
+    const home = `${base}/lga/${scope.lga}`;
+    links = (
+      <>
+        {top(home, "Clinic queues", "list", path === home)}
+        {top(`${base}/facilities`, "Facilities", "building", path.startsWith(`${base}/facilit`))}
+        {top("/about", "Method", "rule", path === "/about")}
+      </>
+    );
+  }
+
+  return (
+    <aside className="shell-chrome border-b border-line bg-card md:sticky md:top-[var(--banner-h,32px)] md:h-[calc(100vh-var(--banner-h,32px))] md:w-60 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r">
+      <Link href={homeOf(scope)} className="block px-4 py-3 md:px-5 md:py-5" aria-label="PHC Sentinel home">
+        <div className="text-[16px] font-bold leading-5 text-ink">PHC Sentinel</div>
+        <div className="text-[12px] text-ink-3">Early warning for primary health care</div>
+      </Link>
+      <ViewAs scope={scope} states={states} lgaName={lgaName} />
+      <nav className="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:px-3" aria-label="Primary">
+        {links}
       </nav>
     </aside>
   );

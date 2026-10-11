@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StatusChip from "@/components/StatusChip";
 import ThemeToggle from "@/components/ThemeToggle";
-import { DOMAIN_LABEL, METRICS, int, monthLabel, pct } from "@/lib/api";
+import { DOMAIN_LABEL, METRICS, int, monthLabel, pct } from "@/lib/format";
 import NationalMap from "./NationalMap";
 
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);

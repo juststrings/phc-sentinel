@@ -79,9 +79,16 @@ def test_state_board_is_limited_to_its_state(client):
 def test_lga_view_is_limited_to_its_lga(client):
     assert get(client, "/state/bauchi/lga/5018/queue", TORO).status_code == 200
     other = next(l["lga_id"] for l in get(client, "/state/bauchi/summary", NAT).json()["lgas"] if l["lga_id"] != "5018")
-    for p in (f"/state/bauchi/lga/{other}/queue", "/state/bauchi/summary", "/state/bauchi/top", "/state/bauchi/geo/lgas",
+    for p in (f"/state/bauchi/lga/{other}/queue", "/state/bauchi/summary", "/state/bauchi/top",
               "/state/bauchi/insights", "/state/bauchi/actions/summary", "/state/kano/summary", "/national/summary"):
         assert get(client, p, TORO).status_code == 403, p
+
+
+def test_lga_map_returns_only_its_own_polygon(client):
+    mine = get(client, "/state/bauchi/geo/lgas", TORO).json()["features"]
+    assert [f["properties"]["lga_id"] for f in mine] == ["5018"]
+    assert get(client, "/state/bauchi/geo/lgas", TORO, lga_id="5001").status_code == 403
+    assert len(get(client, "/state/bauchi/geo/lgas", BAUCHI).json()["features"]) > 1
 
 
 def test_facility_pages_follow_the_lga(client):
